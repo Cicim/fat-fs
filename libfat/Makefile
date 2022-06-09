@@ -10,9 +10,12 @@ HEADERS = fat.h\
 OBJS = dir_change.o\
 	dir_create.o\
 	dir_erase.o\
+	dir_handle.o\
 	dir_list.o\
+	fat_init.o\
 	file_create.o\
 	file_erase.o\
+	file_handle.o\
 	file_read.o\
 	file_seek.o\
 	file_write.o\
