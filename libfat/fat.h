@@ -10,7 +10,11 @@
 typedef enum FatResult {
     OK = 0,
 
-    DIRECTORY_END = -100,
+    DIRECTORY_END = -1,
+    FAT_BUFFER_ERROR = -2,
+    INVALID_BLOCKS_COUNT = -3,
+    FAT_OPEN_ERROR = -4,
+    FAT_CLOSE_ERROR = -5
 } FatResult;
 
 /**
@@ -21,9 +25,9 @@ typedef struct FatHeader {
     unsigned int block_size;
     unsigned int blocks_count;
 
-    char *bitmap_ptr;
-    char *fat_ptr;
-    char *blocks_pts;
+    unsigned int bitmap_offset;
+    unsigned int fat_offset;
+    unsigned int blocks_offset;
 } FatHeader;
 
 // Handler for the file system
@@ -31,6 +35,12 @@ typedef struct FatHeader {
 typedef struct FatFs {
     char current_directory[256];
     FatHeader *header;
+    int buffer_fd;
+    int buffer_size;
+
+    char *bitmap_ptr;
+    char *fat_ptr;
+    char *blocks_ptr;
 } FatFs;
 
 // Data needed by operations on a file
@@ -49,11 +59,14 @@ typedef struct DirEntry {
 /**
  * File System Functions
  */
-// Initialize the file system from scratch
-FatResult fat_init(FatFs *fs, int block_size, int blocks_count);
-// Initialize the file system from an existing file
-FatResult fat_init_from_disk(FatFs *fs, char *file_ptr);
+// Create a file system and save it to a file
+FatResult fat_init(const char *fat_path, int block_size, int blocks_count);
 
+// Open an initialized FAT file system from a path
+FatResult fat_open(FatFs **fs, char *fat_path);
+
+// Close a file system and save its contents to a file
+FatResult fat_close(FatFs *fs);
 
 /**
  * File Functions

@@ -1,2 +1,4 @@
 *.o
 *.a
+*.dat
+fat_man
