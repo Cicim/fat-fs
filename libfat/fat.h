@@ -7,6 +7,12 @@
 #define FILE_SEEK_CUR 1
 #define FILE_SEEK_END 2
 
+#define MAX_FILENAME_LENGTH 16
+#define MAX_PATH_LENGTH 512
+
+#define DIR_ENTRY_SIZE 32
+#define DIR_ENTRY_BITS 5
+
 typedef enum FatResult {
     OK = 0,
 
@@ -14,8 +20,15 @@ typedef enum FatResult {
     FAT_BUFFER_ERROR = -2,
     INVALID_BLOCKS_COUNT = -3,
     FAT_OPEN_ERROR = -4,
-    FAT_CLOSE_ERROR = -5
+    FAT_CLOSE_ERROR = -5,
+    INVALID_PATH = -6
 } FatResult;
+
+typedef enum DirEntryType {
+    DIR_END = 0,
+    DIR_ENTRY_FILE = 1,
+    DIR_ENTRY_DIRECTORY = 2
+} DirEntryType;
 
 /**
  * Structs
@@ -33,7 +46,7 @@ typedef struct FatHeader {
 // Handler for the file system
 // stores both the header pointer and the current directory
 typedef struct FatFs {
-    char current_directory[256];
+    char current_directory[MAX_PATH_LENGTH];
     FatHeader *header;
     int buffer_fd;
     int buffer_size;
@@ -51,10 +64,14 @@ typedef struct DirHandle { } DirHandle;
 
 // Data returned by listing a directory
 typedef struct DirEntry {
-    char name[256];
-    char type;
-    unsigned int size;
+    char name[MAX_FILENAME_LENGTH];
+    unsigned int type: 2;
+    unsigned int size: 30;
+    unsigned int first_index;
+    unsigned int modified_date;
+    unsigned int created_date;
 } DirEntry;
+
 
 /**
  * File System Functions
