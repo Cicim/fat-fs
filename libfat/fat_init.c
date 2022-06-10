@@ -136,6 +136,7 @@ FatResult fat_open(FatFs **fs, char *fat_path) {
     (*fs)->buffer_size = file_size;
     (*fs)->header = (FatHeader *) fat_buffer;
     (*fs)->current_directory[0] = '/';
+    (*fs)->current_directory[1] = '\0';
 
     // Get the pointers to the bitmap, FAT and blocks
     (*fs)->bitmap_ptr = fat_buffer + (*fs)->header->bitmap_offset;

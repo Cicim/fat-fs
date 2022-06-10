@@ -7,8 +7,6 @@
 #include <string.h>
 #include "internals.h"
 
-#define ENTRIES_PER_BLOCK(fs) (fs->header->block_size >> DIR_ENTRY_BITS)
-
 /**
  * Returns the next entry in the directory given the handle
  * @author Cicim
@@ -23,7 +21,7 @@ FatResult dir_handle_next(FatFs *fs, DirHandle *dir, DirEntry **entry) {
 
     // If the entry is a DIR_END, return NULL
     if (curr->type == DIR_END) {
-        *entry = NULL;
+        *entry = curr;
         return END_OF_DIR;
     }
 

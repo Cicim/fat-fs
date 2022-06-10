@@ -11,7 +11,7 @@
  * Testing bitmap functions ...
  * @author Claziero
  */
-void test_bitmap () {
+void test_bitmap() {
     printf("******************************TESTING BITMAP FUNCTIONS******************************\n");
 
     FatFs *fs;
@@ -49,7 +49,7 @@ void test_bitmap () {
  * Testing path absolute function ...
  * @author Claziero
  */
-void test_path_absolute () {
+void test_path_absolute() {
     printf("***************************TESTING PATH_ABSOLUTE FUNCTION***************************\n");
 
     FatFs *fs;
@@ -133,12 +133,89 @@ void test_path_absolute () {
     printf("************************************************************************************\n\n");
 }
 
+
+/**
+ * @author Cicim
+ */
+void recursive_print_directories(FatFs *fs, int block_number, int level) {
+    DirEntry *entry;
+    FatResult res;
+
+    DirHandle dir;
+    dir.block_number = block_number;
+    dir.count = 0;
+
+    while (1) {
+        res = dir_handle_next(fs, &dir, &entry);
+        if (res == OK) {
+            int i = level;
+            while (i--) printf("  ");
+
+            if (entry->type == DIR_ENTRY_DIRECTORY) {
+                printf("%s (%d)\n", entry->name, entry->first_block);
+
+                recursive_print_directories(fs, entry->first_block, level + 1);
+            } else {
+                printf("%s\n", entry->name);
+            }
+        } else if (res == END_OF_DIR) {
+            break;
+        } else {
+            printf("Error: %d\n", res);
+            break;
+        }
+    }
+}
+
+/**
+ * @author Cicim
+ */
+void test_dir_create() {
+    printf("***************************TESTING DIR_CREATE FUNCTION***************************\n");
+
+    FatFs *fs;
+    FatResult res;
+    fat_init("fat_test.dat", 128, 64);
+    fat_open(&fs, "fat_test.dat");
+
+    printf("Creating directories...\n");
+    dir_create(fs, "dir1");
+    dir_create(fs, "dir2");
+
+    dir_create(fs, "dir1/dir3");
+    dir_create(fs, "dir2/dir4");
+    dir_create(fs, "dir2/dir5");
+
+    dir_create(fs, "dir1/dir3/dir6");
+    dir_create(fs, "dir1/dir3/dir7");
+    dir_create(fs, "dir1/dir3/dir8");
+
+    printf("/ (%d)\n", ROOT_DIR_BLOCK);
+    recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
+
+
+    printf("Duplicate name\n");
+    res = dir_create(fs, "dir1");
+    printf("\tFatResult = %d (FatResult == FILE_ALREADY_EXISTS)\n", res);
+
+
+
+    printf("************************************************************************************\n\n");
+
+
+    fat_close(fs);
+}
+
+
 int main(int argc, char **argv) {
     // Test bitmap functions
     test_bitmap();
 
     // Test path absolute function
     test_path_absolute();
+
+    // Test dir create function
+    test_dir_create();
 
     return 0;
 }

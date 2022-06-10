@@ -21,6 +21,11 @@ typedef enum FatResult {
     INVALID_PATH = -6,
     DIR_END_NOT_FOUND = -7,
     END_OF_DIR = -8,
+    FILE_NOT_FOUND = -9,
+    NOT_A_DIRECTORY = -10,
+    NO_FREE_BLOCKS = -11,
+    INVALID_BLOCK_SIZE = -12,
+    FILE_ALREADY_EXISTS = -13
 } FatResult;
 
 typedef enum DirEntryType {
