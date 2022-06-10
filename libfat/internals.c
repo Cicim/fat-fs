@@ -142,7 +142,8 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     
     // Else the path is relative, so concatenate the current directory and the path
     strcpy(dest, fs->current_directory);
-    strcat(dest, "/");
+    if (strcmp(fs->current_directory, "/") != 0) 
+        strcat(dest, "/");
     strcat(dest, path);
 
     return OK;
