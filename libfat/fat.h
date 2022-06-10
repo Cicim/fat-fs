@@ -10,9 +10,6 @@
 #define MAX_FILENAME_LENGTH 16
 #define MAX_PATH_LENGTH 512
 
-#define DIR_ENTRY_SIZE 32
-#define DIR_ENTRY_BITS 5
-
 typedef enum FatResult {
     OK = 0,
 
@@ -21,7 +18,9 @@ typedef enum FatResult {
     INVALID_BLOCKS_COUNT = -3,
     FAT_OPEN_ERROR = -4,
     FAT_CLOSE_ERROR = -5,
-    INVALID_PATH = -6
+    INVALID_PATH = -6,
+    DIR_END_NOT_FOUND = -7,
+    END_OF_DIR = -8,
 } FatResult;
 
 typedef enum DirEntryType {
@@ -60,14 +59,17 @@ typedef struct FatFs {
 typedef struct FileHandle { } FileHandle;
 
 // Data needed by operations on a directory
-typedef struct DirHandle { } DirHandle;
+typedef struct DirHandle {
+    int block_number;
+    int count;
+} DirHandle;
 
 // Data returned by listing a directory
 typedef struct DirEntry {
     char name[MAX_FILENAME_LENGTH];
     unsigned int type: 2;
     unsigned int size: 30;
-    unsigned int first_index;
+    unsigned int first_block;
     unsigned int modified_date;
     unsigned int created_date;
 } DirEntry;

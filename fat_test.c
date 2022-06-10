@@ -12,7 +12,7 @@
  */
 void test_bitmap () {
     FatFs *fs;
-    fat_init("fat_test.dat", 16, 64);
+    fat_init("fat_test.dat", 32, 64);
     fat_open(&fs, "fat_test.dat");
 
     // Test bitmap_get on any block (e.g. 35) (should return 0)
