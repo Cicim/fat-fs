@@ -19,6 +19,10 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
     if (blocks_count % 32 != 0) 
         return INVALID_BLOCKS_COUNT;
 
+    // Check if the block size is valid (must be multiple of 32)
+    if (block_size % 32 != 0) 
+        return INVALID_BLOCK_SIZE;
+
     // Create and initialize the FAT header
     FatHeader header;
     header.block_size = block_size;
@@ -56,6 +60,12 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
 
     // Initialize the bitmap with zeros
     if (ftruncate(fat_fd, header.bitmap_offset + (blocks_count / 8)) != 0)
+        return FAT_BUFFER_ERROR;
+
+    // Set the first bit to 1 (always occupied by the root directory)
+    if (lseek(fat_fd, header.bitmap_offset, SEEK_SET) == -1)
+        return FAT_BUFFER_ERROR;
+    if (write(fat_fd, "\x01", 1) != 1)
         return FAT_BUFFER_ERROR;
 
     // Move the file pointer to the beginning of the FAT table

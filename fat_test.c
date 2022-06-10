@@ -29,17 +29,17 @@ void test_bitmap () {
     // Test bitmap_get on block n.35 (should return 1)
     printf("TEST 2: bitmap_set(%d, 1) \t\t= %d (should be 1)\n", block_number, bitmap_get(fs, block_number));
     
-    // Test bitmap_get_free_block (should return the first block n.0)
+    // Test bitmap_get_free_block (should return the second block n.1)
     int free_block = bitmap_get_free_block(fs);
-    printf("TEST 3: bitmap_get_free_block() \t= %d (should be 0)\n", free_block);
+    printf("TEST 3: bitmap_get_free_block() \t= %d (should be 1)\n", free_block);
 
-    // Occupy the first and the third blocks
-    bitmap_set(fs, 0, 1);
-    bitmap_set(fs, 2, 1);
+    // Occupy the second and the fourth blocks
+    bitmap_set(fs, 1, 1);
+    bitmap_set(fs, 3, 1);
 
-    // Try again to get a free block (should return the second block n.1)
+    // Try again to get a free block (should return the third block n.2)
     free_block = bitmap_get_free_block(fs);
-    printf("TEST 4: bitmap_get_free_block() \t= %d (should be 1)\n", free_block);
+    printf("TEST 4: bitmap_get_free_block() \t= %d (should be 2)\n", free_block);
 
     fat_close(fs);
     printf("************************************************************************************\n\n");
