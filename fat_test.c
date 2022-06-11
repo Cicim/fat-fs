@@ -53,7 +53,7 @@ void test_path_absolute() {
     printf("***************************TESTING PATH_ABSOLUTE FUNCTION***************************\n");
 
     FatFs *fs;
-    fat_init("fat_test.dat", 16, 64);
+    fat_init("fat_test.dat", 32, 64);
     fat_open(&fs, "fat_test.dat");
 
     // Change initial path to "/linus/torvalds"
@@ -171,7 +171,7 @@ void recursive_print_directories(FatFs *fs, int block_number, int level) {
  * @author Cicim
  */
 void test_dir_create() {
-    printf("***************************TESTING DIR_CREATE FUNCTION***************************\n");
+    printf("****************************TESTING DIR_CREATE FUNCTION*****************************\n");
 
     FatFs *fs;
     FatResult res;
@@ -231,9 +231,63 @@ void test_dir_create() {
 
 
     printf("************************************************************************************\n\n");
+}
 
+/**
+ * Testing file_open and file_read functions
+ * @author Claziero
+ */
+void test_file_read() {
+    printf("*****************************TESTING FILE_READ FUNCTION*****************************\n");
+
+    FatFs *fs;
+    FatResult res;
+    fat_init("fat_test.dat", 32, 64);
+    fat_open(&fs, "fat_test.dat");
+
+    // Get a free block
+    int block_number = bitmap_get_free_block(fs);
+    printf("writing in block_number: %d\n", block_number);
+
+    // Open the file from its block number
+    FileHandle *file;
+    res = file_open_by_block(fs, block_number, &file);
+    printf("res of file_open_by_block: %d\n", res);
+    
+    // Write the size of the file MANUALLY
+    char *data_ptr = fs->blocks_ptr + file->initial_block_number * fs->header->block_size;
+    file->fh->size = 16;
+    memcpy(data_ptr, &file->fh->size, sizeof(int));
+
+    // Write some data to the file MANUALLY
+    char data[13] = "Hello World!";
+    data_ptr += file->offset;
+    memcpy(data_ptr, data, 13);
+    printf("data written: \"%s\", real dimension: 13, set size: 16\n", data);
+
+    // Read the data
+    char buffer[100] = "";
+    res = file_read(file, buffer, 3);
+    printf("res of file_read(3): %d\n", res);
+    printf("buffer: %s\n", buffer);
+
+    // Make another read (should continue the string)
+    res = file_read(file, buffer, 5);
+    printf("res of file_read(5): %d\n", res);
+    printf("buffer [should continue]: %s\n", buffer);
+    
+    // Make another read (should continue the string)
+    res = file_read(file, buffer, 20);
+    printf("res of file_read(20): %d\n", res);
+    printf("buffer [should continue]: %s\n", buffer);
+
+    // More tests to come...
+
+    // Close the file
+    file_close(file);
 
     fat_close(fs);
+    printf("************************************************************************************\n\n");
 }
 
 
@@ -246,6 +300,9 @@ int main(int argc, char **argv) {
 
     // Test dir create function
     test_dir_create();
+
+    // Test file read function
+    test_file_read();
 
     return 0;
 }
