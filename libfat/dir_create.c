@@ -8,32 +8,37 @@
 #include "internals.h"
 
 
-
 /**
- * Get a new entry in a directory
- * (if there is already an entry with the given name, it will fail)
+ * Insert an entry in a directory, and returns it
  * @author Cicim
  */
-FatResult dir_get_new_entry(FatFs *fs, int block_number, DirEntry **entry, const char *name) {
+FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, DirEntryType type, const char *name) {
     FatResult res;
-    DirEntry *curr;
+    
+    // Reserve space for the child block
+    int child_block = bitmap_get_free_block(fs);
+    if (child_block == FAT_EOF)
+        return NO_FREE_BLOCKS;
+    bitmap_set(fs, child_block, 1);
 
-    // Get the size of the directory
+    // Get the directory size
+    DirEntry *curr;
     DirHandle dir;
     dir.block_number = block_number;
     dir.count = 0;
 
     while (1) {
         res = dir_handle_next(fs, &dir, &curr);
-        if (res == OK) {
-            // If you found an entry with the same name, return an error
-            if (name && strcmp(curr->name, name) == 0) {
-                return FILE_ALREADY_EXISTS;
-            }
-            continue;
+
+        // Make sure the name is not already used
+        if (res == OK && strcmp(curr->name, name) == 0) {
+            // Free the child block
+            bitmap_set(fs, child_block, 0);
+
+            return FILE_ALREADY_EXISTS;
         }
 
-        // If you found a DIR_END, return it
+        // If you found a DIR_END, store its address
         if (curr->type == DIR_END) {
             *entry = curr;
             dir.count++;
@@ -41,15 +46,17 @@ FatResult dir_get_new_entry(FatFs *fs, int block_number, DirEntry **entry, const
         }
     }
 
-    // Extend if necessary
+    // Extend the directory if necessary
     if (dir.count % ENTRIES_PER_BLOCK(fs) == 0) {
         // Get a new block
         int next_block = bitmap_get_free_block(fs);
         // If there are no free blocks, return an error
         if (next_block == FAT_EOF) {
+            // Free the child block
+            bitmap_set(fs, child_block, 0);
+
             return NO_FREE_BLOCKS;
         }
-
         bitmap_set(fs, next_block, 1);
         // Set the next block
         fat_set_next_block(fs, dir.block_number, next_block);
@@ -57,10 +64,15 @@ FatResult dir_get_new_entry(FatFs *fs, int block_number, DirEntry **entry, const
         dir.block_number = next_block;
     }
 
-    // Empty the first entry in dir.block_number
-    DirEntry *ptr = (DirEntry *)fs->blocks_ptr + dir.block_number * ENTRIES_PER_BLOCK(fs);
-    int offset = dir.count % ENTRIES_PER_BLOCK(fs);
-    memset(ptr + offset, 0, sizeof(DirEntry));
+    // Insert an empty DirEntry at the current offset
+    DirEntry *ptr = (DirEntry *)fs->blocks_ptr 
+        + dir.block_number * ENTRIES_PER_BLOCK(fs) + dir.count % ENTRIES_PER_BLOCK(fs);
+    memset(ptr, 0, sizeof(DirEntry));
+
+    // Update the values for the child entry
+    (*entry)->type = type;
+    strcpy((*entry)->name, name);
+    (*entry)->first_block = child_block;
 
     return OK;
 }
@@ -99,27 +111,14 @@ FatResult dir_create(FatFs *fs, const char *path) {
 
     // Get an entry in the parent directory
     DirEntry *entry;
-    res = dir_get_new_entry(fs, parent_block, &entry, name);
+    res = dir_insert(fs, parent_block, &entry, DIR_ENTRY_DIRECTORY, name);
     if (res != OK) {
         return res;
     }
 
-    // Get the block number of the directory to create
-    int child_block = bitmap_get_free_block(fs);
-    if (child_block == -1) {
-        return NO_FREE_BLOCKS;
-    }
-    bitmap_set(fs, child_block, 1);
+    char *block_ptr = fs->blocks_ptr + entry->first_block * fs->header->block_size;
     // Fill the block with zeros
-    memset(fs->blocks_ptr + child_block * fs->header->block_size,
-           0, fs->header->block_size);
-
-    // Set the name of the entry
-    strcpy(entry->name, name);
-    // Set the type of the entry
-    entry->type = DIR_ENTRY_DIRECTORY;
-    // Set the first block of the entry
-    entry->first_block = child_block;
+    memset(block_ptr, 0, fs->header->block_size);
 
     return OK;
 }

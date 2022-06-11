@@ -190,6 +190,33 @@ void test_dir_create() {
     dir_create(fs, "dir1/dir3/dir7");
     dir_create(fs, "dir1/dir3/dir8");
 
+    file_create(fs, "/dir1/a.txt");
+    file_create(fs, "/dir1/b.txt");
+    file_create(fs, "/dir1/c.txt");
+    file_create(fs, "/dir1/d.txt");
+    file_create(fs, "/dir1/e.txt");
+    file_create(fs, "/dir1/f.txt");
+    file_create(fs, "/dir1/g.txt");
+    file_create(fs, "/dir1/h.txt");
+    file_create(fs, "/dir1/i.txt");
+    file_create(fs, "/dir1/j.txt");
+    file_create(fs, "/dir1/k.txt");
+    file_create(fs, "/dir1/l.txt");
+    file_create(fs, "/dir1/m.txt");
+    file_create(fs, "/dir1/n.txt");
+    file_create(fs, "/dir1/o.txt");
+    file_create(fs, "/dir1/p.txt");
+    file_create(fs, "/dir1/q.txt");
+    file_create(fs, "/dir1/r.txt");
+    file_create(fs, "/dir1/s.txt");
+    file_create(fs, "/dir1/t.txt");
+    file_create(fs, "/dir1/u.txt");
+    file_create(fs, "/dir1/v.txt");
+    file_create(fs, "/dir1/w.txt");
+    file_create(fs, "/dir1/x.txt");
+    file_create(fs, "/dir1/y.txt");
+    file_create(fs, "/dir1/z.txt");
+
     printf("/ (%d)\n", ROOT_DIR_BLOCK);
     recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
 
