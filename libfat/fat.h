@@ -3,11 +3,13 @@
  * @author Cicim
  */
 
+typedef int date_t;
+
 #define FILE_SEEK_SET 0
 #define FILE_SEEK_CUR 1
 #define FILE_SEEK_END 2
 
-#define MAX_FILENAME_LENGTH 16
+#define MAX_FILENAME_LENGTH 27
 #define MAX_PATH_LENGTH 512
 
 typedef enum FatResult {
@@ -72,12 +74,16 @@ typedef struct DirHandle {
 // Data returned by listing a directory
 typedef struct DirEntry {
     char name[MAX_FILENAME_LENGTH];
-    unsigned int type: 2;
-    unsigned int size: 30;
+    char type;
     unsigned int first_block;
-    unsigned int modified_date;
-    unsigned int created_date;
 } DirEntry;
+
+typedef struct FileHeader {
+    unsigned int size;
+    date_t date_created;
+    date_t date_modified;
+    unsigned int _reserved;
+} FileHeader;
 
 
 /**
