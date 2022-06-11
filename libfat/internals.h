@@ -43,7 +43,7 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest);
 #define ENTRIES_PER_BLOCK(fs) (fs->header->block_size >> DIR_ENTRY_BITS)
 
 // Returns the first block of the directory given the path
-FatResult dir_get_first_block(FatFs *fs, char *path, int *block_number);
+FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number);
 // Puts the next directory entry in *entry given the block number
 FatResult dir_handle_next(FatFs *fs, DirHandle *dir, DirEntry **entry);
 // Creates a new directory entry in the given directory

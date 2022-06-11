@@ -198,6 +198,9 @@ void test_dir_create() {
     res = dir_create(fs, "dir1");
     printf("\tFatResult = %d (FatResult == FILE_ALREADY_EXISTS)\n", res);
 
+    printf("Trying to create a directory in a non-existent directory\n");
+    res = dir_create(fs, "dir1/dir3/dir9");
+    printf("\tFatResult = %d (FatResult == FILE_NOT_FOUND)\n", res);
 
 
     printf("************************************************************************************\n\n");

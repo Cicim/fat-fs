@@ -45,3 +45,22 @@ FatResult dir_handle_next(FatFs *fs, DirHandle *dir, DirEntry **entry) {
 
     return OK;
 }
+
+/**
+ * Advances the directory handle to the next entry
+ * and copies it to the given entry
+ * @author Cicim
+ */
+FatResult dir_list(DirHandle *dir, DirEntry *entry) {
+    DirEntry *curr;
+    // Get the next entry
+    FatResult res = dir_handle_next(dir->fs, dir, &curr);
+    if (res != OK)
+        return res;
+
+    // Copy the current entry to the given space
+    *entry = *curr;
+
+    return OK;
+}
+

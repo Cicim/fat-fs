@@ -7,62 +7,6 @@
 #include <string.h>
 #include "internals.h"
 
-/**
- * Returns the first block of the directory given the absolute path
- * @author Cicim
- */
-FatResult dir_get_first_block(FatFs *fs, char *path, int *block_number) {
-    int block = *block_number;
-
-    if (path[0] == '/') {
-        path++;
-        block = ROOT_DIR_BLOCK;
-    }
-
-    if (path[0] == '\0') {
-        *block_number = block;
-        return OK;
-    }
-
-    // Get the name of the directory to look for
-    FatResult res;
-    char *name;
-    DirHandle dir;
-    DirEntry *entry;
-
-    while ((name = strsep(&path, "/"))) {
-        dir.block_number = block;
-        dir.count = 0;
-
-        // Get the entry with the given name
-        while (1) {
-            res = dir_handle_next(fs, &dir, &entry);
-
-            if (res == END_OF_DIR) {
-                return FILE_NOT_FOUND;
-            }
-            else if (res == OK) {
-                // If you found an entry with the given name
-                if (strcmp(entry->name, name) == 0) {
-                    // Make sure it's a directory
-                    if (entry->type != DIR_ENTRY_DIRECTORY) {
-                        return NOT_A_DIRECTORY;
-                    }
-                    // Otherwise, return the block number
-                    block = entry->first_block;
-                    break;
-                }
-            }
-            else {
-                return res;
-            }
-        }
-    }
-
-    *block_number = block;
-
-    return OK;
-}
 
 
 /**

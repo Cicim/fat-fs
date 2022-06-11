@@ -15,7 +15,6 @@ typedef int date_t;
 typedef enum FatResult {
     OK = 0,
 
-    DIRECTORY_END = -1,
     FAT_BUFFER_ERROR = -2,
     INVALID_BLOCKS_COUNT = -3,
     FAT_OPEN_ERROR = -4,
@@ -27,7 +26,8 @@ typedef enum FatResult {
     NOT_A_DIRECTORY = -10,
     NO_FREE_BLOCKS = -11,
     INVALID_BLOCK_SIZE = -12,
-    FILE_ALREADY_EXISTS = -13
+    FILE_ALREADY_EXISTS = -13,
+    OUT_OF_MEMORY = -14,
 } FatResult;
 
 typedef enum DirEntryType {
@@ -67,6 +67,7 @@ typedef struct FileHandle { } FileHandle;
 
 // Data needed by operations on a directory
 typedef struct DirHandle {
+    FatFs *fs;
     int block_number;
     int count;
 } DirHandle;
@@ -148,8 +149,7 @@ FatResult dir_open(FatFs *fs, const char *path, DirHandle **dir);
 FatResult dir_close(DirHandle *dir);
 
 // Get the next element in the directory
-// returns an error if path is invalid
-// returns DIRECTORY_END if there are no more elements
+// returns END_OF_DIR if there are no more elements
 FatResult dir_list(DirHandle *dir, DirEntry *entry);
 
 // Changes the current directory to the given path
