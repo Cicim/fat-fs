@@ -1,6 +1,6 @@
 /**
  * Header File for User-Accessible Structs and Functions
- * @author Cicim
+ * @authors Cicim, Claziero
  */
 
 typedef int date_t;
@@ -28,6 +28,7 @@ typedef enum FatResult {
     INVALID_BLOCK_SIZE = -12,
     FILE_ALREADY_EXISTS = -13,
     OUT_OF_MEMORY = -14,
+    INVALID_BLOCK = -15,
 } FatResult;
 
 typedef enum DirEntryType {
@@ -62,8 +63,22 @@ typedef struct FatFs {
     char *blocks_ptr;
 } FatFs;
 
+// File informations
+typedef struct FileHeader {
+    unsigned int size;
+    date_t date_created;
+    date_t date_modified;
+    unsigned int _reserved;
+} FileHeader;
+
 // Data needed by operations on a file
-typedef struct FileHandle { } FileHandle;
+typedef struct FileHandle { 
+    FatFs *fs;
+    FileHeader *fh;
+    int initial_block_number;
+    int current_block_number;
+    int offset;
+} FileHandle;
 
 // Data needed by operations on a directory
 typedef struct DirHandle {
@@ -78,13 +93,6 @@ typedef struct DirEntry {
     char type;
     unsigned int first_block;
 } DirEntry;
-
-typedef struct FileHeader {
-    unsigned int size;
-    date_t date_created;
-    date_t date_modified;
-    unsigned int _reserved;
-} FileHeader;
 
 
 /**
@@ -109,6 +117,9 @@ FatResult file_create(FatFs *fs, const char *path);
 // Erases the file from the given path
 // returns an error if path is invalid
 FatResult file_erase(FatFs *fs, const char *path);
+
+// Returns a file descriptor (struct FileHandle) given a block number 
+FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file);
 
 // Creates a file handle given a path
 // returns an error if path is invalid
