@@ -30,6 +30,7 @@ typedef enum FatResult {
     OUT_OF_MEMORY = -14,
     INVALID_BLOCK = -15,
     NOT_ENOUGH_MEMORY = -16,
+    SEEK_INVALID_ARGUMENT = -17,
 } FatResult;
 
 typedef enum DirEntryType {

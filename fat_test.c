@@ -285,7 +285,7 @@ void test_file_read() {
     char data[13] = "Hello World!";
     data_ptr += file->offset;
     memcpy(data_ptr, data, 13);
-    printf("data written: \"%s\", real dimension: 13, set size: 16\n", data);
+    printf("Data written: \"%s\", real dimension: 13, set size: 16\n", data);
 
     // Read the data
     char buffer[100] = "";
@@ -312,6 +312,93 @@ void test_file_read() {
     printf("************************************************************************************\n\n");
 }
 
+/**
+ * Testing file_seek function ...
+ * @author Claziero
+ */
+void test_file_seek() {
+    printf("*****************************TESTING FILE_SEEK FUNCTION*****************************\n");
+
+    FatFs *fs;
+    FatResult res;
+    fat_init("fat_test.dat", 64, 64);
+    fat_open(&fs, "fat_test.dat");
+
+    printf("Creating directories...\n");
+    dir_create(fs, "dir1");
+    dir_create(fs, "dir2");
+
+    dir_create(fs, "dir1/dir3");
+    dir_create(fs, "dir2/dir4");
+    dir_create(fs, "dir2/dir5");
+
+    file_create(fs, "/dir1/a.txt");
+    file_create(fs, "/dir1/b.txt");
+
+    printf("/ (%d)\n", ROOT_DIR_BLOCK);
+    recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
+
+    // Try opening a file
+    printf("\nTrying to open a file (/dir1/a.txt)...\n");
+    FileHandle *file;
+    res = file_open(fs, "/dir1/a.txt", &file);
+    printf("\tFatResult = %d\n", res);
+
+    // Write the size of the file MANUALLY
+    char *data_ptr = fs->blocks_ptr + file->initial_block_number * fs->header->block_size;
+    file->fh->size = 42;
+    memcpy(data_ptr, &file->fh->size, sizeof(int));
+
+    // Write some data to the file MANUALLY
+    char data[42] = "This is a test for the file_seek function";
+    data_ptr += file->offset;
+    memcpy(data_ptr, data, 42);
+    printf("Data written: \"%s\", \nreal dimension: 42, set size: 42\n\n", data);
+
+    // Seek to the beginning of the file
+    printf("TEST 1: Seeking to the beginning of the file with offset 5 ...\n");
+    res = file_seek(file, 5, FILE_SEEK_SET);
+    printf("\tFatResult = %d\n", res);
+
+    // Read the data
+    char buffer[100] = "";
+    res = file_read(file, buffer, 10);
+    printf("\tres of file_read(10): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+
+    // Seek to offset 5 from the current pointer
+    printf("TEST 2: Seeking to offset 5 from the current pointer ...\n");
+    res = file_seek(file, 5, FILE_SEEK_CUR);
+    printf("\tFatResult = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 100);
+    res = file_read(file, buffer, 10);
+    printf("\tres of file_read(10): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+
+    // Seek to offset 9 from the end of the file
+    printf("TEST 3: Seeking to offset 9 from the end of the file ...\n");
+    res = file_seek(file, 9, FILE_SEEK_END);
+    printf("\tFatResult = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 100);
+    res = file_read(file, buffer, 10);
+    printf("\tres of file_read(10): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+
+    // More tests to come ...
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    fat_close(fs);
+    printf("************************************************************************************\n\n");
+}
+
 
 int main(int argc, char **argv) {
     // Test bitmap functions
@@ -325,6 +412,9 @@ int main(int argc, char **argv) {
 
     // Test file read function
     test_file_read();
+
+    // Test file seek function
+    test_file_seek();
 
     return 0;
 }
