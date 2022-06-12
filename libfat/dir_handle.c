@@ -83,7 +83,8 @@ FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number) {
     }
     // If the path was the root itself, return the root directory's block
     if (*path == '\0') {
-        *block_number = ROOT_DIR_BLOCK;
+        if (block_number != NULL)
+            *block_number = ROOT_DIR_BLOCK;
         return OK;
     }
 
@@ -124,7 +125,8 @@ FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number) {
         }
     }
 
-    *block_number = block;
+    if (block_number != NULL)
+        *block_number = block;
 
     return OK;
 }

@@ -239,6 +239,19 @@ void test_dir_create() {
     res = dir_create(fs, "dir1/dir3/dir9");
     printf("\tFatResult = %d (FatResult == FILE_NOT_FOUND)\n", res);
 
+    
+    // Change the current directory
+    printf("Changing the current directory...\n");
+    res = path_get_absolute(fs, "/dir1", fs->current_directory);
+    printf("\tFatResult = %d\n", res);
+    printf("\tpath_get_absolute(\"/dir1\") = %s\n", fs->current_directory);
+
+    res = file_open(fs, "a.txt", &file);
+    printf("\tFatResult = %d\n", res);
+    printf("file->initial_block_number = %d\n", file->initial_block_number);
+    printf("file->block_number = %d\n", file->current_block_number);
+    file_close(file);
+
     printf("************************************************************************************\n\n");
 }
 
