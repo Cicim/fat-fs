@@ -12,6 +12,7 @@
 #include "internals.h"
 
 /**
+ * Create a file system and save it to a file
  * @author Claziero
  */
 FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
@@ -102,6 +103,7 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
 }
 
 /**
+ * Open an initialized FAT file system from a path
  * @author Cicim
  */
 FatResult fat_open(FatFs **fs, char *fat_path) {
@@ -147,6 +149,7 @@ FatResult fat_open(FatFs **fs, char *fat_path) {
 }
 
 /**
+ * Close a file system and save its contents to a file
  * @author Cicim
  */
 FatResult fat_close(FatFs *fs) {

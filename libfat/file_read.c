@@ -7,8 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Reads data from file into a buffer
-// returns a FatResult or the number of read bytes
+/**
+ * Reads data from file into a buffer
+ * Returns a FatResult or the number of read bytes
+ * @author Claziero
+ */
 int file_read(FileHandle *file, char *buffer, int size) {
     // Check if the file is open
     if (file == NULL)

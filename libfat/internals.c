@@ -1,12 +1,15 @@
 /**
  * Functions for Accessing the FAT and Bitmap
- * @author Claziero
+ * @authors Claziero, Cicim
  */
 
 #include "internals.h"
 #include <string.h>
 
-// Returns the bit value at the given block index
+/**
+ * Returns the bit value at the given block index
+ * @author Claziero
+ */
 int bitmap_get(FatFs *fs, int block_number) {
     // Get the bitmap sector (byte) and the bit index
     int byte_index = block_number / 8;
@@ -15,7 +18,10 @@ int bitmap_get(FatFs *fs, int block_number) {
     return (fs->bitmap_ptr[byte_index] >> bit_index) & 1;
 }
 
-// Sets the bit value at the given block index
+/**
+ * Sets the bit value at the given block index
+ * @author Claziero
+ */
 void bitmap_set(FatFs *fs, int block_number, int value) {
     // Get the bitmap sector (byte) and the bit index
     int byte_index = block_number / 8;
@@ -28,7 +34,10 @@ void bitmap_set(FatFs *fs, int block_number, int value) {
         fs->bitmap_ptr[byte_index] &= ~(1 << bit_index);
 }
 
-// Returns the first free block in the bitmap
+/**
+ * Returns the first free block in the bitmap
+ * @author Claziero
+ */
 int bitmap_get_free_block(FatFs *fs) {
     int bitmap_size = fs->header->blocks_count / 8;
 
@@ -49,8 +58,11 @@ int bitmap_get_free_block(FatFs *fs) {
     return -1;
 }
 
-// Stores the absolute path of the given file/directory
-// TODO: implement cases when "./" or "../" are inside the path, not only at the beginning
+/**
+ * Stores the absolute path of the given file/directory
+ * TODO: implement cases when "./" or "../" are inside the path, not only at the beginning
+ * @author Claziero
+ */
 FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     // If the path is empty, return an error
     if (path == NULL || path[0] == '\0')
@@ -148,7 +160,6 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
 
     return OK;
 }
-
 
 /**
  * Convert a path to absolute, then store the pointers to the

@@ -63,4 +63,3 @@ FatResult dir_list(DirHandle *dir, DirEntry *entry) {
 
     return OK;
 }
-

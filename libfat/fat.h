@@ -168,4 +168,3 @@ FatResult dir_list(DirHandle *dir, DirEntry *entry);
 // Changes the current directory to the given path
 // returns an error if path is invalid
 FatResult dir_change(FatFs *fs, const char *path);
-

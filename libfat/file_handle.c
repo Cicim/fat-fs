@@ -7,7 +7,10 @@
 #include <string.h>
 #include "internals.h"
 
-// Returns a file descriptor (struct FileHandle) given a block number 
+/**
+ * Returns a file descriptor (struct FileHandle) given a block number 
+ * @author Claziero
+ */ 
 FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
     // Check if the block number is valid
     if (block_number < 0 || block_number >= fs->header->blocks_count)
@@ -28,8 +31,11 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
     return OK;
 }
 
-// Creates a file handle given a path
-// returns an error if path is invalid
+/**
+ * Creates a file handle given a path
+ * Returns an error if "path" is invalid
+ * @author Claziero
+ */
 FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
     FatResult res;
 
@@ -76,7 +82,10 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
     return OK;
 }
 
-// Frees the memory occupied by a file handle
+/**
+ * Frees the memory occupied by a file handle
+ * @author Claziero
+ */
 FatResult file_close(FileHandle *file) {
     free(file);
     return OK;
