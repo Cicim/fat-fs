@@ -209,6 +209,7 @@ static const char *fat_result_str_table[] = {
     [-OUT_OF_MEMORY]         = "Out of memory",
     [-INVALID_BLOCK]         = "Invalid block",
     [-SEEK_INVALID_ARGUMENT] = "Invalid argument for seek",
+    [-NOT_A_FILE]            = "Not a file",   
 };
 
 /**
@@ -219,3 +220,69 @@ const char *fat_result_string(FatResult res) {
     return fat_result_str_table[-res];
 }
 
+/**
+ * Delete an entry in a directory
+ * @author Claziero
+ */
+FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char *name) {
+    FatResult res;
+    
+    // Get the directory size
+    DirEntry *curr;
+    DirHandle dir;
+    dir.block_number = block_number;
+    dir.count = 0;
+
+    while (1) {
+        res = dir_handle_next(fs, &dir, &curr);
+
+        // If you found a DIR_END, the file is not in this directory
+        if (res == END_OF_DIR)
+            return FILE_NOT_FOUND;
+        else if (res != OK)
+            return res;
+
+        // Make sure this is the name of the entry to delete
+        if (strcmp(curr->name, name) != 0) 
+            continue;
+
+        if (type == DIR_ENTRY_FILE && curr->type == DIR_ENTRY_DIRECTORY)
+            return NOT_A_FILE;
+        else if (type == DIR_ENTRY_DIRECTORY && curr->type == DIR_ENTRY_FILE)
+            return NOT_A_DIRECTORY;
+        
+        // Else the type is right
+        break;
+    }
+
+    // Save the block number of the entry to be returned
+    int child_block = curr->first_block;
+
+    // Keep listing the directory until you find the end
+    DirEntry *next;
+    int last_entry_block;
+    while (curr->type != DIR_END) {
+        last_entry_block = dir.block_number;
+
+        // Get the next entry
+        res = dir_handle_next(fs, &dir, &next);
+        if (res != OK && res != END_OF_DIR)
+            return res;
+
+        // Copy the next entry to the current entry
+        *curr = *next;
+
+        // Move pointers
+        curr = next;
+    }
+
+    // Compact the directory if necessary
+    if (dir.block_number != last_entry_block) {
+        // Free the last block
+        bitmap_set(fs, dir.block_number, 0);
+        // Set the next block to FAT_EOF
+        fat_set_next_block(fs, last_entry_block, FAT_EOF);
+    }
+
+    return OK;
+}

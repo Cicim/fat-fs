@@ -48,5 +48,7 @@ FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number);
 FatResult dir_handle_next(FatFs *fs, DirHandle *dir, DirEntry **entry);
 // Creates a new directory entry in the given directory
 FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, DirEntryType type, const char *name);
+// Delete an entry in a directory
+FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char *name);
 // Divides the given path into a directory and an element name
 FatResult path_get_components(FatFs *fs, const char *path, char *path_buffer, char **dir_ptr, char **element_ptr);

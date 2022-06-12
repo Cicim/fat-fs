@@ -313,6 +313,70 @@ void test_file_read() {
 }
 
 /**
+ * @author Claziero
+ */
+void test_dir_delete() {
+    printf("****************************TESTING DIR_DELETE FUNCTION*****************************\n");
+
+    FatFs *fs;
+    FatResult res;
+    fat_init("fat_test.dat", 128, 64);
+    fat_open(&fs, "fat_test.dat");
+
+    printf("Creating directories...\n");
+    dir_create(fs, "dir1");
+    dir_create(fs, "dir2");
+
+    dir_create(fs, "dir1/dir3");
+    dir_create(fs, "dir2/dir4");
+    dir_create(fs, "dir2/dir5");
+
+    file_create(fs, "/dir1/a.txt");
+    file_create(fs, "/dir1/b.txt");
+    file_create(fs, "/dir1/c.txt");
+    file_create(fs, "/dir1/d.txt");
+    file_create(fs, "/dir1/e.txt");
+    file_create(fs, "/dir1/f.txt");
+    file_create(fs, "/dir1/g.txt");
+
+    printf("/ (%d)\n", ROOT_DIR_BLOCK);
+    recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
+
+    // Open a directory
+    printf("\nTrying to open a directory...\n");
+    DirHandle *dir;
+    res = dir_open(fs, "dir1", &dir);
+    printf("\tFatResult = %d\n", res);
+    
+    // Delete a file
+    printf("Deleting a file (a.txt)...\n");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "a.txt");
+    printf("\tFatResult = %d\n", res);
+
+    printf("Deleting a file (b.txt)...\n");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "b.txt");
+    printf("\tFatResult = %d\n", res);
+
+    printf("Deleting a file (c.txt)...\n");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "c.txt");
+    printf("\tFatResult = %d\n", res);
+
+    printf("Deleting a file (d.txt)...\n");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "d.txt");
+    printf("\tFatResult = %d\n", res);
+
+    printf("Deleting a file (g.txt)...\n");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "g.txt");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Print directory tree
+    printf("/ (%d)\n", ROOT_DIR_BLOCK);
+    recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
+
+    printf("************************************************************************************\n\n");
+}
+
+/**
  * Testing file_seek function ...
  * @author Claziero
  */
@@ -410,11 +474,14 @@ int main(int argc, char **argv) {
     // Test dir create function
     test_dir_create();
 
-    // Test file read function
-    test_file_read();
+    // Test dir delete function
+    test_dir_delete();
 
-    // Test file seek function
-    test_file_seek();
+    // Test file read function
+    // test_file_read();
+
+    // // Test file seek function
+    // test_file_seek();
 
     return 0;
 }

@@ -29,7 +29,8 @@ typedef enum FatResult {
     FILE_ALREADY_EXISTS = -13,
     OUT_OF_MEMORY = -14,
     INVALID_BLOCK = -15,
-    SEEK_INVALID_ARGUMENT = -17,
+    SEEK_INVALID_ARGUMENT = -16,
+    NOT_A_FILE = -17,
 } FatResult;
 
 typedef enum DirEntryType {
