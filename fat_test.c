@@ -316,7 +316,7 @@ void test_file_read() {
  * @author Claziero
  */
 void test_dir_delete() {
-    printf("****************************TESTING DIR_DELETE FUNCTION*****************************\n");
+    printf("**********************TESTING DIR_DELETE/FILE_ERASE FUNCTIONS***********************\n");
 
     FatFs *fs;
     FatResult res;
@@ -349,24 +349,25 @@ void test_dir_delete() {
     printf("\tFatResult = %d\n", res);
     
     // Delete a file
+    int dummy;
     printf("Deleting a file (a.txt)...\n");
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "a.txt");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "a.txt", &dummy);
     printf("\tFatResult = %d\n", res);
 
     printf("Deleting a file (b.txt)...\n");
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "b.txt");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "b.txt", &dummy);
     printf("\tFatResult = %d\n", res);
 
     printf("Deleting a file (c.txt)...\n");
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "c.txt");
+    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "c.txt", &dummy);
     printf("\tFatResult = %d\n", res);
 
     printf("Deleting a file (d.txt)...\n");
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "d.txt");
+    res = file_erase(fs, "/dir1/d.txt");
     printf("\tFatResult = %d\n", res);
 
     printf("Deleting a file (g.txt)...\n");
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, "g.txt");
+    res = file_erase(fs, "/dir1/g.txt");
     printf("\tFatResult = %d\n\n", res);
 
     // Print directory tree
@@ -478,10 +479,10 @@ int main(int argc, char **argv) {
     test_dir_delete();
 
     // Test file read function
-    // test_file_read();
+    test_file_read();
 
-    // // Test file seek function
-    // test_file_seek();
+    // Test file seek function
+    test_file_seek();
 
     return 0;
 }

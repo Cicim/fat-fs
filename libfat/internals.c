@@ -224,7 +224,7 @@ const char *fat_result_string(FatResult res) {
  * Delete an entry in a directory
  * @author Claziero
  */
-FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char *name) {
+FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char *name, int *child_block) {
     FatResult res;
     
     // Get the directory size
@@ -256,7 +256,7 @@ FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char 
     }
 
     // Save the block number of the entry to be returned
-    int child_block = curr->first_block;
+    *child_block = curr->first_block;
 
     // Keep listing the directory until you find the end
     DirEntry *next;
