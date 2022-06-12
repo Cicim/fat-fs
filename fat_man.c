@@ -27,6 +27,26 @@ FatResult cmd_cd(FatFs *fs, const char *path) {
 
     return dir_change(fs, path);
 }
+/**
+ * Create a directory
+ * @author Cicim
+ */
+FatResult cmd_mkdir(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    return dir_create(fs, path);
+}
+/**
+ * Create a file
+ * @author Cicim
+ */
+FatResult cmd_touch(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    return file_create(fs, path);
+}
 
 
 /**
@@ -81,17 +101,24 @@ int parse_argument(char *arg) {
  * @author Cicim
  */
 void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
-    FatResult res;
+    FatResult res = OK;
 
-    if (command[0] == NULL)
+    char *cmd_name = command[0];
+    if (cmd_name == NULL)
         return;
 
     // Compare each command's name
-    if (strcmp(command[0], "cd") == 0)
+    if (strcmp(cmd_name, "cd") == 0)
         res = cmd_cd(fs, command[1]);
+    else if (strcmp(cmd_name, "mkdir") == 0)
+        res = cmd_mkdir(fs, command[1]);
+    else if (strcmp(cmd_name, "touch") == 0)
+        res = cmd_touch(fs, command[1]);
+    else
+        printf("Unknown command: %s\n", cmd_name);
 
     if (res != OK)
-        printf("%s error: %s\n", command[0], fat_result_string(res));
+        printf("%s error: %s\n", cmd_name, fat_result_string(res));
 }
 
 

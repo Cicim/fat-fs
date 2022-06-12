@@ -120,6 +120,7 @@ FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number) {
             block = entry->first_block;
             // Advance the path
             path = strchr(path, '/');
+            if (path) path++;
             // Stop the inner loop
             break;
         }
