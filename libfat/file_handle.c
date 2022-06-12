@@ -19,7 +19,7 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
     // Allocate memory for the file handle
     *file = malloc(sizeof(FileHandle));
     if (*file == NULL)
-        return NOT_ENOUGH_MEMORY;
+        return OUT_OF_MEMORY;
     
     // Initialize the file handle
     (*file)->fs = fs;

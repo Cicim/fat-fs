@@ -191,3 +191,31 @@ FatResult path_get_components(FatFs *fs, const char *path, char *path_buffer, ch
 
     return OK;
 }
+
+static const char *fat_result_str_table[] = {
+    [OK]                     = "Ok",
+    [-INVALID_BLOCKS_COUNT]  = "Invalid number of blocks",
+    [-INVALID_BLOCK_SIZE]    = "Invalid block size",
+    [-FAT_OPEN_ERROR]        = "Cannot open the FAT buffer file",
+    [-FAT_BUFFER_ERROR]      = "Error with the buffer containing the FAT FS",
+    [-FAT_CLOSE_ERROR]       = "Cannot close the FAT buffer file",
+    [-INVALID_PATH]          = "Invalid path",
+    [-DIR_END_NOT_FOUND]     = "Cannot find DIR_END entry in the last block of the directory",
+    [-END_OF_DIR]            = "Directory end",
+    [-FILE_NOT_FOUND]        = "File not found",
+    [-NOT_A_DIRECTORY]       = "Not a directory",
+    [-NO_FREE_BLOCKS]        = "No free blocks",
+    [-FILE_ALREADY_EXISTS]   = "File already exists",
+    [-OUT_OF_MEMORY]         = "Out of memory",
+    [-INVALID_BLOCK]         = "Invalid block",
+    [-SEEK_INVALID_ARGUMENT] = "Invalid argument for seek",
+};
+
+/**
+ * Returns a string with the description of the given error
+ * @author Cicim
+ */
+const char *fat_result_string(FatResult res) {
+    return fat_result_str_table[-res];
+}
+

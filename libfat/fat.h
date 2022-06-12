@@ -29,7 +29,6 @@ typedef enum FatResult {
     FILE_ALREADY_EXISTS = -13,
     OUT_OF_MEMORY = -14,
     INVALID_BLOCK = -15,
-    NOT_ENOUGH_MEMORY = -16,
     SEEK_INVALID_ARGUMENT = -17,
 } FatResult;
 
@@ -108,6 +107,9 @@ FatResult fat_open(FatFs **fs, char *fat_path);
 
 // Close a file system and save its contents to a file
 FatResult fat_close(FatFs *fs);
+
+// Return a string representation of a FAT result
+const char *fat_result_string(FatResult res);
 
 /**
  * File Functions
