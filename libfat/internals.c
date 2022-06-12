@@ -148,3 +148,35 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
 
     return OK;
 }
+
+
+/**
+ * Convert a path to absolute, then store the pointers to the
+ * directory and the element
+ * @author Cicim
+ */
+FatResult path_get_components(FatFs *fs, const char *path, char *path_buffer, char **dir_ptr, char **element_ptr) {
+    // Get the absolute path
+    FatResult res = path_get_absolute(fs, path, path_buffer);
+    if (res != OK)
+        return res;
+
+    // If the path is the root, return an error
+    if (path_buffer[0] == '/' && path_buffer[1] == '\0')
+        return INVALID_PATH;
+
+    // Get the last name in the path to create
+    *element_ptr = strrchr(path_buffer, '/');
+    // Split the two strings
+    **element_ptr = '\0';
+    // Skip the '\0'
+    *element_ptr += 1;
+
+    // Get the directory
+    if (path_buffer[0] == '\0')
+        *dir_ptr = "/";
+    else
+        *dir_ptr = path_buffer;
+
+    return OK;
+}
