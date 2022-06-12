@@ -29,6 +29,7 @@ typedef enum FatResult {
     FILE_ALREADY_EXISTS = -13,
     OUT_OF_MEMORY = -14,
     INVALID_BLOCK = -15,
+    NOT_ENOUGH_MEMORY = -16,
 } FatResult;
 
 typedef enum DirEntryType {

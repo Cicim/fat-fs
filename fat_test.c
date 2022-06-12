@@ -220,6 +220,16 @@ void test_dir_create() {
     printf("/ (%d)\n", ROOT_DIR_BLOCK);
     recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
 
+    // Try opening a file
+    printf("Trying to open a file...\n");
+    FileHandle *file;
+    res = file_open(fs, "/dir1/a.txt", &file);
+    printf("\tFatResult = %d\n", res);
+
+    // Close the file
+    printf("Closing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
 
     printf("Duplicate name\n");
     res = dir_create(fs, "dir1");
@@ -228,7 +238,6 @@ void test_dir_create() {
     printf("Trying to create a directory in a non-existent directory\n");
     res = dir_create(fs, "dir1/dir3/dir9");
     printf("\tFatResult = %d (FatResult == FILE_NOT_FOUND)\n", res);
-
 
     printf("************************************************************************************\n\n");
 }

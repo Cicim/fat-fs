@@ -3,8 +3,9 @@
  * @author Claziero
  */
 
-#include "fat.h"
 #include <stdlib.h>
+#include <string.h>
+#include "internals.h"
 
 // Returns a file descriptor (struct FileHandle) given a block number 
 FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
@@ -15,7 +16,7 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
     // Allocate memory for the file handle
     *file = malloc(sizeof(FileHandle));
     if (*file == NULL)
-        return -1;
+        return NOT_ENOUGH_MEMORY;
     
     // Initialize the file handle
     (*file)->fs = fs;
@@ -30,7 +31,47 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
 // Creates a file handle given a path
 // returns an error if path is invalid
 FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
-    // TBD
+    FatResult res;
+
+    // Split "path" in directory and file name
+    char path_buffer[MAX_PATH_LENGTH];
+    char *dir_path, *name;
+    res = path_get_components(fs, path, path_buffer, &dir_path, &name);
+    if (res != OK)
+        return res;
+
+    // Open the directory
+    int dir_block;
+    res = dir_get_first_block(fs, dir_path, &dir_block);
+    if (res != OK)
+        return res;
+
+    // Create the Directory Handle
+    DirHandle dir;
+    dir.block_number = dir_block;
+    dir.count = 0;
+
+    // Look for the file in the directory
+    DirEntry *entry;
+    int file_block;
+    while (1) {
+        res = dir_handle_next(fs, &dir, &entry);
+        if (res == END_OF_DIR)
+            return FILE_NOT_FOUND;
+        else if (res != OK)
+            return res;
+
+        if (strcmp(entry->name, name) == 0) {
+            // Save the file block number
+            file_block = entry->first_block;
+            break;
+        }            
+    }
+
+    // Open the file
+    res = file_open_by_block(fs, file_block, file);
+    if (res != OK)
+        return res;
 
     return OK;
 }
