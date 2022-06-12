@@ -74,7 +74,7 @@ int compare_name(const char *path, const char *name) {
  * @author Cicim
  */
 FatResult dir_get_first_block(FatFs *fs, const char *path, int *block_number) {
-    int block = *block_number;
+    int block = block_number ? *block_number : ROOT_DIR_BLOCK;
 
     // If the path is absolute, start from the root directory
     if (*path == '/') {

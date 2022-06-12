@@ -14,6 +14,22 @@
 #define MAX_COMMAND_ARGUMENTS 4
 
 /**
+ * Commands
+ */
+
+/**
+ * Change directory
+ * @author Cicim
+ */
+FatResult cmd_cd(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    return dir_change(fs, path);
+}
+
+
+/**
  * Help printing
  * @author Cicim
  */
@@ -65,10 +81,17 @@ int parse_argument(char *arg) {
  * @author Cicim
  */
 void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
-    // TODO implement commands
-    for (int i = 0; i < MAX_COMMAND_ARGUMENTS && command[i]; i++) {
-        printf("%d -> %s\n", i, command[i]);
-    }
+    FatResult res;
+
+    if (command[0] == NULL)
+        return;
+
+    // Compare each command's name
+    if (strcmp(command[0], "cd") == 0)
+        res = cmd_cd(fs, command[1]);
+
+    if (res != OK)
+        printf("%s error: %s\n", command[0], fat_result_string(res));
 }
 
 
