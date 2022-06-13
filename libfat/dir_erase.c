@@ -50,15 +50,11 @@ FatResult dir_empty(FatFs *fs, int dir_block) {
 FatResult dir_erase(FatFs *fs, const char *path) {
     FatResult res;
 
-    printf("Erase Path: %s \n", path);
-
     // Convert the path to an absolute path
     char path_buffer[MAX_PATH_LENGTH];
     res = path_get_absolute(fs, path, path_buffer);
     if (res != OK)
         return res;
-
-    printf("Erase Absolute path: %s \n", path_buffer);
 
     // If the absolute path is the root
     if (path_buffer[0] == '/' && path_buffer[1] == '\0') {

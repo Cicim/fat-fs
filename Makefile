@@ -3,35 +3,27 @@
 CC = gcc
 CCOPTS = --std=gnu99 -Wall 
 
-HEADERS = libfat/fat.h
-HEADERS_TEST = libfat/internals.h
+USER_HEADERS = libfat/fat.h
+LIB_HEADERS = libfat/internals.h
 
-OBJS = fat_man.o
-OBJS_TEST = fat_test.o
-	
 LIBS = libfat/libfat.a
 
-BINS = fat_man
-BINS_TEST = fat_test
+BINS = fat_man tester fat_test
 
 
 all:
-	make -C libfat
-	make fat_man
-	make fat_test
+	make -C libfat --no-print-directory
+	make $(BINS) --no-print-directory
 
-fat_man: $(OBJS) $(HEADERS) $(LIBS)
-	$(CC) $(CCOPTS) -o $@ $(OBJS) $(LIBS)
+fat_man: $(USER_HEADERS) $(LIBS)
+	$(CC) $(CCOPTS) -o $@ fat_man.c $(LIBS)
 
-fat_test: $(OBJS_TEST) $(HEADERS_TEST) $(LIBS)
-	$(CC) $(CCOPTS) -o $@ $(OBJS_TEST) $(LIBS)
+fat_test: $(LIB_HEADERS) $(LIBS)
+	$(CC) $(CCOPTS) -o $@ fat_test.c $(LIBS)
 
-internals.o:	internals.c $(HEADERS)
-	$(CC) $(CCOPTS) -c -o $@  $<
-
-%.o:	%.c $(HEADERS)
-	$(CC) $(CCOPTS) -c -o $@  $<
+tester: $(LIB_HEADERS) $(LIBS)
+	$(CC) $(CCOPTS) -o $@ tester.c $(LIBS)
 
 clean:
-	rm -rf *.o *.dat $(BINS) $(BINS_TEST)
-	make -C libfat clean
+	rm -rf *.o *.dat $(BINS)
+	make -C libfat clean --no-print-directory
