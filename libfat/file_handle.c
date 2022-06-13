@@ -36,8 +36,23 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
  * Returns an error if "path" is invalid
  * @author Claziero
  */
-FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
+FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) {
     FatResult res;
+
+    // Get the file open mode
+    FileMode mod;
+    if (strcmp(mode, "r") == 0)
+        mod = FILE_MODE_READ;
+    else if (strcmp(mode, "w") == 0)
+        mod = FILE_MODE_WRITE;
+    else if (strcmp(mode, "a") == 0)
+        mod = FILE_MODE_APPEND;
+    else if (strcmp(mode, "w+") == 0)
+        mod = FILE_MODE_WRITE_CREATE;
+    else if (strcmp(mode, "a+") == 0)
+        mod = FILE_MODE_APPEND_CREATE;
+    else
+        return FILE_OPEN_INVALID_ARGUMENT;    
 
     // Split "path" in directory and file name
     char path_buffer[MAX_PATH_LENGTH];
@@ -62,8 +77,20 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
     int file_block;
     while (1) {
         res = dir_handle_next(fs, &dir, &entry);
-        if (res == END_OF_DIR)
+        
+        // If the file does not exist and you don't want to create it, return an error
+        if (res == END_OF_DIR && 
+            (mod == FILE_MODE_READ || mod == FILE_MODE_WRITE || mod == FILE_MODE_APPEND))
             return FILE_NOT_FOUND;
+
+        // Else if file does not exist and you want to create it, create it
+        else if (res == END_OF_DIR) {
+            res = file_create(fs, path);
+            if (res != OK)
+                return res;
+        }
+            
+        // Else there's another error
         else if (res != OK)
             return res;
 
@@ -73,11 +100,14 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file) {
             break;
         }            
     }
-
+    
     // Open the file
     res = file_open_by_block(fs, file_block, file);
     if (res != OK)
         return res;
+
+    // Set the file mode
+    (*file)->mode = mod;
 
     return OK;
 }

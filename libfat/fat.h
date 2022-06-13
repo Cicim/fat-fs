@@ -31,6 +31,8 @@ typedef enum FatResult {
     INVALID_BLOCK = -15,
     SEEK_INVALID_ARGUMENT = -16,
     NOT_A_FILE = -17,
+    WRITE_INVALID_ARGUMENT = -18,
+    FILE_OPEN_INVALID_ARGUMENT = -19,
 } FatResult;
 
 typedef enum DirEntryType {
@@ -38,6 +40,14 @@ typedef enum DirEntryType {
     DIR_ENTRY_FILE = 1,
     DIR_ENTRY_DIRECTORY = 2
 } DirEntryType;
+
+typedef enum FileMode {
+    FILE_MODE_READ = 0,
+    FILE_MODE_WRITE = 1,
+    FILE_MODE_APPEND = 2,
+    FILE_MODE_WRITE_CREATE = 3,
+    FILE_MODE_APPEND_CREATE = 4
+} FileMode;
 
 /**
  * Structs
@@ -80,6 +90,7 @@ typedef struct FileHandle {
     int initial_block_number;
     int current_block_number;
     int offset;
+    FileMode mode;
 } FileHandle;
 
 // Data needed by operations on a directory
@@ -112,6 +123,7 @@ FatResult fat_close(FatFs *fs);
 // Return a string representation of a FAT result
 const char *fat_result_string(FatResult res);
 
+
 /**
  * File Functions
  */
@@ -128,7 +140,7 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file);
 
 // Creates a file handle given a path
 // returns an error if path is invalid
-FatResult file_open(FatFs *fs, const char *path, FileHandle **file);
+FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode);
 
 // Frees the memory occupied by a file handle
 FatResult file_close(FileHandle *file);

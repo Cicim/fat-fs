@@ -223,7 +223,7 @@ void test_dir_create() {
     // Try opening a file
     printf("Trying to open a file...\n");
     FileHandle *file;
-    res = file_open(fs, "/dir1/a.txt", &file);
+    res = file_open(fs, "/dir1/a.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
 
     // Close the file
@@ -246,7 +246,7 @@ void test_dir_create() {
     printf("\tFatResult = %d\n", res);
     printf("\tpath_get_absolute(\"/dir1\") = %s\n", fs->current_directory);
 
-    res = file_open(fs, "a.txt", &file);
+    res = file_open(fs, "a.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
     printf("file->initial_block_number = %d\n", file->initial_block_number);
     printf("file->block_number = %d\n", file->current_block_number);
@@ -406,7 +406,7 @@ void test_file_seek() {
     // Try opening a file
     printf("\nTrying to open a file (/dir1/a.txt)...\n");
     FileHandle *file;
-    res = file_open(fs, "/dir1/a.txt", &file);
+    res = file_open(fs, "/dir1/a.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
 
     // Write the size of the file MANUALLY
@@ -464,6 +464,122 @@ void test_file_seek() {
     printf("************************************************************************************\n\n");
 }
 
+/**
+ * Testing file_write function ...
+ * @author Claziero
+ */
+void test_file_write() {
+    printf("*****************************TESTING FILE_WRITE FUNCTION****************************\n");
+
+    FatFs *fs;
+    FatResult res;
+    fat_init("fat_test.dat", 64, 64);
+    fat_open(&fs, "fat_test.dat");
+
+    printf("Creating directories...\n");
+    dir_create(fs, "dir1");
+    dir_create(fs, "dir2");
+
+    dir_create(fs, "dir1/dir3");
+    dir_create(fs, "dir2/dir4");
+    dir_create(fs, "dir2/dir5");
+
+    file_create(fs, "/dir1/a.txt");
+    file_create(fs, "/dir1/b.txt");
+
+    printf("/ (%d)\n", ROOT_DIR_BLOCK);
+    recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
+
+    // Try opening a file
+    printf("\nTrying to open a file (/dir1/a.txt) in \"w\" mode...\n");
+    FileHandle *file;
+    res = file_open(fs, "/dir1/a.txt", &file, "w");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Write some data to the file
+    char data[33] = "Test for the file_write function";
+    printf("TEST 1: Trying to write \"%s\" to the file...\n", data);
+    printf("\tThe file does not need another block to be allocated.\n");
+    res = file_write(file, data, 33);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    char buffer[150] = "";
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 100);
+    printf("\t\tres of file_read(100): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Overwrite the data
+    printf("TEST 2: Trying to overwrite the data in the file...\n");
+    // res = file_seek(file, 0, FILE_SEEK_SET);
+    char data2[42] = "This is a string that overwrites the data";
+    printf("\tTrying to write \"%s\" to the file...\n", data2);
+    printf("\tThe file does not need another block to be allocated.\n");
+    res = file_write(file, data2, 42);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 100);
+    printf("\t\tres of file_read(100): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Write more data to the file
+    printf("TEST 3: Trying to write more data to the file...\n");
+    // res = file_seek(file, 0, FILE_SEEK_SET);
+    char data3[75] = "This string will take more than a block to be stored because it's too long";
+    printf("\tTrying to write \"%s\" to the file...\n", data3);
+    printf("\tThe file needs another block to be allocated.\n");
+    res = file_write(file, data3, 75);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 100);
+    printf("\t\tres of file_read(100): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Reopen the file in append mode
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+    printf("\nOpening file (/dir1/a.txt) in \"a\" mode...\n");
+    res = file_open(fs, "/dir1/a.txt", &file, "a");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Append some text to the file
+    printf("TEST 4: Trying to append some text to the file...\n");
+    char data4[52] = ".This is a string that will be appended to the file";
+    printf("\tTrying to write \"%s\" to the file...\n", data4);
+    printf("\tThe file needs another block to be allocated.\n");
+    res = file_write(file, data4, 52);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 150);
+    printf("\t\tres of file_read(150): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // More tests to come on modes "w+" and "a+"
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    fat_close(fs);
+    printf("************************************************************************************\n\n");
+}
+
 
 int main(int argc, char **argv) {
     // Test bitmap functions
@@ -483,6 +599,9 @@ int main(int argc, char **argv) {
 
     // Test file seek function
     test_file_seek();
+
+    // Test file write function
+    test_file_write();
 
     return 0;
 }
