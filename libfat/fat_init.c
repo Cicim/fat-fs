@@ -17,11 +17,11 @@
  */
 FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
     // Check if the number of blocks is valid (must be multiple of 32)
-    if (blocks_count < 0 || blocks_count % 32 != 0) 
+    if (blocks_count <= 0 || blocks_count % 32 != 0) 
         return INVALID_BLOCKS_COUNT;
 
     // Check if the block size is valid (must be multiple of 32)
-    if (block_size < 0 || block_size % 32 != 0) 
+    if (block_size <= 0 || block_size % 32 != 0) 
         return INVALID_BLOCK_SIZE;
 
     // Create and initialize the FAT header
