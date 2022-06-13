@@ -22,28 +22,21 @@ FatResult file_erase(FatFs *fs, const char *path) {
         return res;
 
     // Open the directory
-    DirHandle *dir;
-    res = dir_open(fs, dir_path, &dir);
+    int dir_block;
+    res = dir_get_first_block(fs, dir_path, &dir_block);
     if (res != OK)
         return res;
 
     // Delete the file
     int child_block;
-    res = dir_delete(fs, dir->block_number, DIR_ENTRY_FILE, name, &child_block);
+    res = dir_delete(fs, dir_block, DIR_ENTRY_FILE, name, &child_block);
     if (res != OK)
         return res;
 
-    // Update the FAT table and bitmap references
-    do {
-        // Set the bitmap
-        bitmap_set(fs, child_block, 0);
-        
-        // Update the FAT table
-        int next = fat_get_next_block(fs, child_block);
-        fat_set_next_block(fs, child_block, FAT_EOF);
-
-        child_block = next;
-    } while (child_block != FAT_EOF);
+    // Unlink the file
+    res = fat_unlink(fs, child_block);
+    if (res != OK)
+        return res;
 
     return OK;
 }

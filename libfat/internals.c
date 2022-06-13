@@ -220,6 +220,27 @@ const char *fat_result_string(FatResult res) {
     return fat_result_str_table[-res];
 }
 
+/** 
+ * Unlink all blocks associated with a file and free them
+ * @authors Cicim, Claziero
+ */
+FatResult fat_unlink(FatFs *fs, int block_number) {
+    // Update the FAT table and bitmap references
+    do {
+        // Set the bitmap
+        bitmap_set(fs, block_number, 0);
+        
+        // Update the FAT table
+        int next = fat_get_next_block(fs, block_number);
+        fat_set_next_block(fs, block_number, FAT_EOF);
+
+        block_number = next;
+    } while (block_number != FAT_EOF);
+
+    return OK;
+}
+
+
 /**
  * Delete an entry in a directory
  * @author Claziero
