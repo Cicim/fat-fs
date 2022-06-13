@@ -15,13 +15,13 @@ all:
 	make -C libfat --no-print-directory
 	make $(BINS) --no-print-directory
 
-fat_man: $(USER_HEADERS) $(LIBS)
+fat_man: $(USER_HEADERS) $(LIBS) fat_man.c
 	$(CC) $(CCOPTS) -o $@ fat_man.c $(LIBS)
 
-fat_test: $(LIB_HEADERS) $(LIBS)
+fat_test: $(LIB_HEADERS) $(LIBS) fat_test.c
 	$(CC) $(CCOPTS) -o $@ fat_test.c $(LIBS)
 
-tester: $(LIB_HEADERS) $(LIBS)
+tester: $(LIB_HEADERS) $(LIBS) tester.c
 	$(CC) $(CCOPTS) -o $@ tester.c $(LIBS)
 
 clean:
