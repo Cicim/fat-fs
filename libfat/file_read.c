@@ -50,8 +50,8 @@ int file_read(FileHandle *file, char *buffer, int size) {
 
         // Update the size of the read and the buffer pointer
         read_size += size_to_read;
-        size -= read_size;
-        buffer += read_size;
+        size -= size_to_read;
+        buffer += size_to_read;
 
         // Check if the current block is the end of the file
         if (fat_get_next_block(file->fs, file->current_block_number) != FAT_EOF) {
