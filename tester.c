@@ -97,6 +97,74 @@ typedef struct TestData {
 
 #define END if (ext) printf("   Score: %d/%d\n", score, test_count); return score; }
 
+/** 
+ * Helper functions
+ */
+FatResult file_exists(FatFs *fs, const char *path, DirEntryType type, int *block_number) {
+    FatResult res;
+
+    // Split "path" in directory and file name
+    char path_buffer[MAX_PATH_LENGTH];
+    char *dir_path, *name;
+    res = path_get_components(fs, path, path_buffer, &dir_path, &name);
+    if (res != OK)
+        return res;
+
+    
+    // Look for the element in the directory
+    DirHandle dir;
+    DirEntry *entry;
+    dir.count = 0;
+    res = dir_get_first_block(fs, dir_path, &dir.block_number);
+    if (res != OK)
+        return res;
+    
+    while (1) {
+        res = dir_handle_next(fs, &dir, &entry);
+        
+        if (res == END_OF_DIR)
+            return FILE_NOT_FOUND;
+        else if (res != OK)
+            return res;
+
+
+        if (strcmp(entry->name, name) != 0)
+            continue;
+        
+        // Check if the type is right
+        if (entry->type != type) {
+            if (type == DIR_ENTRY_FILE)
+                return NOT_A_FILE;
+            else if (type == DIR_ENTRY_DIRECTORY)
+                return NOT_A_DIRECTORY;
+        }
+        if (block_number)
+            *block_number = entry->first_block;
+        return OK;
+    }
+}
+
+#define TEST_EXISTS(path, type, block_number_ptr) { \
+    FatResult result = file_exists(fs, path, type, block_number_ptr);           \
+    if (ext) {                                                                  \
+        if (result == FILE_NOT_FOUND)                                           \
+            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+                   TEXT_RESET TEXT_WRONG " does not exist\n", path);            \
+        else if (result == NOT_A_DIRECTORY)                                     \
+            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+                   TEXT_RESET TEXT_WRONG " is not a directory\n", path);        \
+        else if (result == NOT_A_FILE)                                          \
+            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+                   TEXT_RESET TEXT_WRONG " is not a file\n", path);             \
+        else if (result != OK)                                                  \
+            TEST_ABORT("Error while checking the path");                        \
+    }                                                                           \
+    if (result == OK) {                                                         \
+        score++;                                                                \
+        if (ext) printf(TEXT_CORRECT "       ✓ Path " TEXT_BOLD "\"%s\""        \
+                        TEXT_RESET TEXT_CORRECT " exists\n" TEXT_RESET, path);  \
+    } }
+
 
 
 /**
@@ -170,7 +238,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(path_get_absolute, 28) {
+TEST(path_get_absolute, 30) {
     #define TEST_PATH_SUM(text, from, path, expected)                        \
         TEST_TITLE(text ": " from " + " path " = " expected);                \
         strcpy(fs->current_directory, from);                                 \
@@ -195,6 +263,7 @@ TEST(path_get_absolute, 28) {
     TEST_PATH_SUM("Relative addition", "/", "dir", "/dir");
     TEST_PATH_SUM("Nested directories", "/dir", "dir", "/dir/dir");
     TEST_PATH_SUM("Absolute addition", "/dir", "/dir/dir", "/dir/dir");
+    TEST_PATH_SUM("Absolute ending in slash", "/", "/dir/", "/dir");
     TEST_PATH_SUM("Trailing slash", "/", "dir/", "/dir");
     TEST_PATH_SUM("Trailing slash", "/dir", "dir/", "/dir/dir");
     TEST_PATH_SUM("Directory up", "/dir", "..", "/");
@@ -213,6 +282,65 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(path_get_components, 14) {
+    // Test the get_components function
+    #define TEST_PATH_COMPONENTS(text, path, dir, file)\
+        TEST_TITLE(text ": " path " = " dir " and " file);\
+        TEST_RESULT(path_get_components(fs, path, path_buffer, &dir_path, &name), OK);\
+        COMPARE_STRINGS(dir_path, dir);\
+        COMPARE_STRINGS(name, file);
+
+
+    FatFs *fs;
+    char path_buffer[MAX_PATH_LENGTH];
+    char *dir_path, *name;
+    INIT_TEMP_FS(fs, 32, 32);
+
+    TEST_TITLE("The current directory starts from the root");
+    COMPARE_STRINGS(fs->current_directory, "/");
+
+    TEST_TITLE("Splitting / should be invalid");\
+    TEST_RESULT(path_get_components(fs, "/", path_buffer, &dir_path, &name), INVALID_PATH);
+
+    TEST_PATH_COMPONENTS("Inside root", "/file", "/", "file");
+    TEST_PATH_COMPONENTS("Inside subdirectory", "/dir/file", "/dir", "file");
+    TEST_PATH_COMPONENTS("No trailing slashes", "/dir/file/", "/dir", "file");
+    TEST_PATH_COMPONENTS("More subdirectories", "/dir/dir/file", "/dir/dir", "file");
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
+// @author Cicim
+TEST(dir_create, 9) {
+    FatFs *fs;
+    INIT_TEMP_FS(fs, 32, 32);
+
+    TEST_TITLE("Creating /dir");
+    TEST_RESULT(dir_create(fs, "/dir"), OK);
+    TEST_EXISTS("/dir", DIR_ENTRY_DIRECTORY, NULL);
+    TEST_TITLE("Creating /dir/dir");
+    TEST_RESULT(dir_create(fs, "/dir/dir"), OK);
+    TEST_EXISTS("/dir/dir", DIR_ENTRY_DIRECTORY, NULL);
+    TEST_TITLE("Creating /dir/dir/dir");
+    TEST_RESULT(dir_create(fs, "/dir/dir/dir"), OK);
+    TEST_EXISTS("/dir/dir/dir", DIR_ENTRY_DIRECTORY, NULL);
+
+    TEST_TITLE("Creating directory in a non-existing directory /test/dir");
+    TEST_RESULT(dir_create(fs, "/test/dir"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Creating a directory that already exists: /dir");
+    TEST_RESULT(dir_create(fs, "/dir"), FILE_ALREADY_EXISTS);
+    TEST_TITLE("Creating a directory that already exists: /dir/dir");
+    TEST_RESULT(dir_create(fs, "/dir/dir"), FILE_ALREADY_EXISTS);
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
 
 /**
  * Test selector
@@ -223,6 +351,8 @@ const struct TestData tests[] = {
     TEST_ENTRY(fat_init),
     TEST_ENTRY(fat_open),
     TEST_ENTRY(path_get_absolute),
+    TEST_ENTRY(path_get_components),
+    TEST_ENTRY(dir_create),
 };
 
 int main(int argc, char **argv) {
