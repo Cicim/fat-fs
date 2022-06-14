@@ -29,6 +29,9 @@ typedef struct TestData {
 // Text styles
 #define TEXT_BOLD "\033[1m"
 #define TEXT_UNDERLINE "\033[4m"
+#define TEXT_STRIKE "\033[9m"
+#define TEXT_BLUE "\033[34m"
+#define TEXT_RED "\033[31m"
 #define TEXT_RESET "\033[0m"
 // The ANSI escape sequence for RGB foreground
 #define TEXT_RGB_FG(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
@@ -44,7 +47,6 @@ typedef struct TestData {
 #define TEST(n, c) \
     static const int test_count_##n = (c); \
     int test_##n(int ext) {                \
-        int test_count = test_count_##n;   \
         int score = 0;                     \
         int test_number = 0;               \
 
@@ -92,10 +94,10 @@ typedef struct TestData {
 
 
 #define OK_MESSAGE(text) { if (ext) puts("       " TEXT_CORRECT "✓ " text TEXT_RESET); score++; }
-#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG text "✘ " TEXT_RESET); }
+#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG "✘ " text TEXT_RESET); }
 #define TEST_ABORT(text) { KO_MESSAGE(text); goto cleanup; }
 
-#define END if (ext) printf("   Score: %d/%d\n", score, test_count); return score; }
+#define END return score; }
 
 /** 
  * Helper functions
@@ -148,13 +150,13 @@ FatResult file_exists(FatFs *fs, const char *path, DirEntryType type, int *block
     FatResult result = file_exists(fs, path, type, block_number_ptr);           \
     if (ext) {                                                                  \
         if (result == FILE_NOT_FOUND)                                           \
-            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
                    TEXT_RESET TEXT_WRONG " does not exist\n", path);            \
         else if (result == NOT_A_DIRECTORY)                                     \
-            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
                    TEXT_RESET TEXT_WRONG " is not a directory\n", path);        \
         else if (result == NOT_A_FILE)                                          \
-            printf(TEXT_WRONG "Path " TEXT_BOLD "\"%s\""                        \
+            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
                    TEXT_RESET TEXT_WRONG " is not a file\n", path);             \
         else if (result != OK)                                                  \
             TEST_ABORT("Error while checking the path");                        \
@@ -165,6 +167,22 @@ FatResult file_exists(FatFs *fs, const char *path, DirEntryType type, int *block
                         TEXT_RESET TEXT_CORRECT " exists\n" TEXT_RESET, path);  \
     } }
 
+void print_fat_links(FatFs *fs, int bn) {
+    while (bn != FAT_EOF) {
+        if (bitmap_get(fs, bn) == 0)
+            printf(TEXT_RED TEXT_STRIKE "%d" TEXT_RESET " -> ", bn);
+        else
+            printf(TEXT_BLUE TEXT_BOLD "%d" TEXT_RESET " -> ", bn);
+        bn = fat_get_next_block(fs, bn);
+    }
+    printf("EOF\n");
+}
+
+#define PRINT_FAT_LINKS(block_number) { \
+    if (ext) {                                                   \
+        printf("       FAT chain" TEXT_RESET ": "); \
+        print_fat_links(fs, block_number); } }
+    
 
 
 /**
@@ -314,13 +332,20 @@ cleanup:
 }
 
 // @author Cicim
-TEST(dir_create, 9) {
+TEST(dir_create, 10) {
     FatFs *fs;
+    int block_number;
     INIT_TEMP_FS(fs, 32, 32);
 
     TEST_TITLE("Creating /dir");
     TEST_RESULT(dir_create(fs, "/dir"), OK);
-    TEST_EXISTS("/dir", DIR_ENTRY_DIRECTORY, NULL);
+    TEST_EXISTS("/dir", DIR_ENTRY_DIRECTORY, &block_number);
+    TEST_TITLE("Creates the DIR_END entry");
+    DirEntry *entry = (DirEntry *)(fs->blocks_ptr + block_number * fs->header->block_size);
+    if (entry->type == DIR_END) {
+        OK_MESSAGE("The DIR_END entry was created");
+    } else KO_MESSAGE("The DIR_END entry is not created");
+
     TEST_TITLE("Creating /dir/dir");
     TEST_RESULT(dir_create(fs, "/dir/dir"), OK);
     TEST_EXISTS("/dir/dir", DIR_ENTRY_DIRECTORY, NULL);
@@ -341,11 +366,206 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(file_create, 7) {
+    FatFs *fs;
+    int block_number;
+    INIT_TEMP_FS(fs, 32, 32);
+
+    TEST_TITLE("Creating /file");
+    TEST_RESULT(file_create(fs, "/file"), OK);
+    TEST_EXISTS("/file", DIR_ENTRY_FILE, &block_number);
+    FileHeader *header = (FileHeader *)(fs->blocks_ptr + block_number * fs->header->block_size);
+    if (header->date_created != 0 && header->date_modified != 0 && header->size == 0) {
+        OK_MESSAGE("The header was initialized");
+    } else KO_MESSAGE("The header was not initialized");
+
+    // Try to create a file in a non-existing directory
+    TEST_TITLE("Creating a file in a non-existing directory /test/file");
+    TEST_RESULT(file_create(fs, "/test/file"), FILE_NOT_FOUND);
+    // Try to create a file that already exists
+    TEST_TITLE("Creating a file that already exists: /file");
+    TEST_RESULT(file_create(fs, "/file"), FILE_ALREADY_EXISTS);
+
+    // Try to create a file inside of a directory
+    TEST_TITLE("Creating a file inside a directory: /dir/file");
+    dir_create(fs, "/dir");
+    TEST_RESULT(file_create(fs, "/dir/file"), OK);
+    TEST_EXISTS("/dir/file", DIR_ENTRY_FILE, &block_number);
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
+// @author Cicim
+TEST(file_erase, 12) {
+    FatFs *fs;
+    FileHandle *file = NULL;
+    int block_number;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    TEST_TITLE("Erasing /file");
+    file_create(fs, "/file");
+    file_exists(fs, "/file", DIR_ENTRY_FILE, &block_number);
+    PRINT_FAT_LINKS(block_number);
+    TEST_RESULT(file_erase(fs, "/file"), OK);
+    PRINT_FAT_LINKS(block_number);
+    if (bitmap_get(fs, block_number)) {
+        KO_MESSAGE("The block was not erased");
+    } else OK_MESSAGE("The block was erased");
+    TEST_RESULT(file_open(fs, "/file", &file, "r"), FILE_NOT_FOUND);
+
+
+    TEST_TITLE("Erasing a file inside a directory: /dir/file");
+    dir_create(fs, "/dir");
+    file_create(fs, "/dir/file");
+    file_exists(fs, "/dir/file", DIR_ENTRY_FILE, &block_number);
+    PRINT_FAT_LINKS(block_number);
+    TEST_RESULT(file_erase(fs, "/dir/file"), OK);
+    PRINT_FAT_LINKS(block_number);
+    TEST_RESULT(file_open(fs, "/dir/file", &file, "r"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Erasing a file spread over multiple blocks");
+    file_create(fs, "/file");
+    int next = bitmap_get_free_block(fs);
+    fat_set_next_block(fs, block_number, next);
+    bitmap_set(fs, next, 1);
+    PRINT_FAT_LINKS(block_number);
+    TEST_RESULT(file_erase(fs, "/file"), OK);
+    PRINT_FAT_LINKS(block_number);
+    if (bitmap_get(fs, block_number)) {
+        KO_MESSAGE("The first block was not erased");
+    } else OK_MESSAGE("The first block was erased");
+    if (bitmap_get(fs, next)) {
+        KO_MESSAGE("The second block was not erased");
+    } else OK_MESSAGE("The second block was erased");
+    if (fat_get_next_block(fs, block_number) != FAT_EOF) {
+        KO_MESSAGE("The first block's next block was not set to EOF");
+    } else OK_MESSAGE("The first block's next block was set to EOF");
+    TEST_RESULT(file_open(fs, "/file", &file, "r"), FILE_NOT_FOUND);
+
+
+    TEST_TITLE("Erasing a non-existing file: /file");
+    TEST_RESULT(file_erase(fs, "/file"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Erasing a file inside a non-existing directory");
+    TEST_RESULT(file_erase(fs, "/test/file"), FILE_NOT_FOUND);
+
+cleanup:
+    fat_close(fs);
+    if (file) file_close(file);
+    END
+}
+
+// @author Cicim
+TEST(dir_erase, 20) {
+    FatFs *fs;
+    DirHandle *dir = NULL;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    TEST_TITLE("Erasing empty directory: /dir");
+    int dir_block;
+    dir_create(fs, "/dir");
+    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    PRINT_FAT_LINKS(dir_block);
+    TEST_RESULT(dir_erase(fs, "/dir"), OK);
+    PRINT_FAT_LINKS(dir_block);
+    TEST_RESULT(dir_open(fs, "/dir", &dir), FILE_NOT_FOUND);
+    if (bitmap_get(fs, dir_block)) {
+        KO_MESSAGE("The block was not erased");
+    } else OK_MESSAGE("The block was erased");
+
+    int file1_block, file2_block;
+    TEST_TITLE("Erasing a directory with files: /dir");
+    dir_create(fs, "/dir");
+    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    file_create(fs, "/dir/file1");
+    file_exists(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
+    file_create(fs, "/dir/file2");
+    file_exists(fs, "/dir/file2", DIR_ENTRY_FILE, &file2_block);
+    int next = fat_get_next_block(fs, dir_block);
+    PRINT_FAT_LINKS(dir_block);
+    TEST_RESULT(dir_erase(fs, "/dir"), OK);
+    PRINT_FAT_LINKS(dir_block);
+    if (bitmap_get(fs, dir_block)) {
+        KO_MESSAGE("The first block was not erased");
+    } else OK_MESSAGE("The first block was erased");
+    if (bitmap_get(fs, next)) {
+        KO_MESSAGE("The second block was not erased");
+    } else OK_MESSAGE("The second block was erased");
+    if (fat_get_next_block(fs, dir_block) != FAT_EOF) {
+        KO_MESSAGE("The first block's next block was not set to EOF");
+    } else OK_MESSAGE("The first block's next block was set to EOF");
+
+    if (bitmap_get(fs, file1_block)) {
+        KO_MESSAGE("file1 was not erased");
+    } else OK_MESSAGE("file1 was erased");
+    if (bitmap_get(fs, file2_block)) {
+        KO_MESSAGE("file2 was not erased");
+    } else OK_MESSAGE("file2 was erased");
+
+    TEST_RESULT(dir_open(fs, "/dir", &dir), FILE_NOT_FOUND);
+
+    int subdir_block;
+    // Erasing a directory with subdirectories
+    TEST_TITLE("Erasing a directory with subdirectories: /dir");
+    dir_create(fs, "/dir");
+    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    file_create(fs, "/dir/file1");
+    file_exists(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
+    dir_create(fs, "/dir/subdir");
+    file_exists(fs, "/dir/subdir", DIR_ENTRY_DIRECTORY, &subdir_block);
+    file_create(fs, "/dir/subdir/file2");
+    file_exists(fs, "/dir/subdir/file2", DIR_ENTRY_FILE, &file2_block);
+    next = fat_get_next_block(fs, dir_block);
+    PRINT_FAT_LINKS(dir_block);
+    PRINT_FAT_LINKS(subdir_block);
+    TEST_RESULT(dir_erase(fs, "/dir"), OK);
+    PRINT_FAT_LINKS(dir_block);
+    PRINT_FAT_LINKS(subdir_block);
+    if (bitmap_get(fs, dir_block)) {
+        KO_MESSAGE("The first block was not erased");
+    } else OK_MESSAGE("The first block was erased");
+    if (bitmap_get(fs, next)) {
+        KO_MESSAGE("The second block was not erased");
+    } else OK_MESSAGE("The second block was erased");
+    if (fat_get_next_block(fs, dir_block) != FAT_EOF) {
+        KO_MESSAGE("The first block's next block was not set to EOF");
+    } else OK_MESSAGE("The first block's next block was set to EOF");
+
+    if (bitmap_get(fs, file1_block)) {
+        KO_MESSAGE("file1 was not erased");
+    } else OK_MESSAGE("file1 was erased");
+    if (bitmap_get(fs, file2_block)) {
+        KO_MESSAGE("file2 was not erased");
+    } else OK_MESSAGE("file2 was erased");
+    if (bitmap_get(fs, subdir_block)) {
+        KO_MESSAGE("subdir was not erased");
+    } else OK_MESSAGE("subdir was erased");
+
+    TEST_RESULT(dir_open(fs, "/dir", &dir), FILE_NOT_FOUND);
+    
+
+
+
+    TEST_TITLE("Erasing a non-existing directory: /dir");
+    TEST_RESULT(dir_erase(fs, "/dir"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Erasing a directory inside a non-existing directory");
+    TEST_RESULT(dir_erase(fs, "/test/dir"), FILE_NOT_FOUND);
+
+
+cleanup:
+    fat_close(fs);
+    if (dir) dir_close(dir);
+    END
+}
+
 
 /**
  * Test selector
  */
-
 #define TEST_COUNT sizeof(tests) / sizeof(TestData)
 const struct TestData tests[] = {
     TEST_ENTRY(fat_init),
@@ -353,6 +573,9 @@ const struct TestData tests[] = {
     TEST_ENTRY(path_get_absolute),
     TEST_ENTRY(path_get_components),
     TEST_ENTRY(dir_create),
+    TEST_ENTRY(file_create),
+    TEST_ENTRY(file_erase),
+    TEST_ENTRY(dir_erase),
 };
 
 int main(int argc, char **argv) {
