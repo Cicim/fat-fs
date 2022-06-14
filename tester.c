@@ -323,7 +323,7 @@ TEST(path_get_components, 14) {
 
     TEST_PATH_COMPONENTS("Inside root", "/file", "/", "file");
     TEST_PATH_COMPONENTS("Inside subdirectory", "/dir/file", "/dir", "file");
-    TEST_PATH_COMPONENTS("No trailing slashes", "/dir/file/", "/dir", "file");
+    TEST_PATH_COMPONENTS("Trailing slashes", "/dir/file/", "/dir", "file");
     TEST_PATH_COMPONENTS("More subdirectories", "/dir/dir/file", "/dir/dir", "file");
 
 cleanup:
@@ -454,7 +454,7 @@ TEST(file_erase, 13) {
 
     TEST_TITLE("Erasing a directory with file_erase: /dir/test");
     dir_create(fs, "/dir/test");
-    TEST_RESULT(dir_erase(fs, "/file/test"), NOT_A_FILE);
+    TEST_RESULT(file_erase(fs, "/dir/test"), NOT_A_FILE);
 
 cleanup:
     fat_close(fs);
@@ -463,7 +463,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(dir_erase, 22) {
+TEST(dir_erase, 21) {
     FatFs *fs;
     DirHandle *dir = NULL;
     INIT_TEMP_FS(fs, 64, 32);
@@ -618,6 +618,54 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(dir_list, 16) {
+    FatFs *fs;
+    DirHandle *dir = NULL;
+    DirEntry entry;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    TEST_TITLE("Listing / with only file1 (no block jumping)");
+    file_create(fs, "/file1");
+    dir_open(fs, "/", &dir);
+    TEST_RESULT(dir_list(dir, &entry), OK);
+    COMPARE_STRINGS(entry.name, "file1");
+    if (entry.type != DIR_ENTRY_FILE) {
+        KO_MESSAGE("The entry type was not correctly initialized");
+    } else OK_MESSAGE("The entry type was correctly initialized");
+    TEST_RESULT(dir_list(dir, &entry), END_OF_DIR);
+    dir_close(dir);
+
+    TEST_TITLE("Listing / with 4 files (block jumping)");
+    file_create(fs, "/file2");
+    file_create(fs, "/file3");
+    file_create(fs, "/file4");
+    dir_open(fs, "/", &dir);
+    TEST_RESULT(dir_list(dir, &entry), OK);
+    COMPARE_STRINGS(entry.name, "file1");
+    if (entry.type != DIR_ENTRY_FILE) {
+        KO_MESSAGE("The entry type was not correctly initialized");
+    } else OK_MESSAGE("The entry type was correctly initialized");
+    TEST_RESULT(dir_list(dir, &entry), OK);
+    COMPARE_STRINGS(entry.name, "file2");
+    if (entry.type != DIR_ENTRY_FILE) {
+        KO_MESSAGE("The entry type was not correctly initialized");
+    } else OK_MESSAGE("The entry type was correctly initialized");
+    TEST_RESULT(dir_list(dir, &entry), OK);
+    COMPARE_STRINGS(entry.name, "file3");
+    if (entry.type != DIR_ENTRY_FILE) {
+        KO_MESSAGE("The entry type was not correctly initialized");
+    } else OK_MESSAGE("The entry type was correctly initialized");
+    TEST_RESULT(dir_list(dir, &entry), OK);
+    COMPARE_STRINGS(entry.name, "file4");
+    if (entry.type != DIR_ENTRY_FILE) {
+        KO_MESSAGE("The entry type was not correctly initialized");
+    } else OK_MESSAGE("The entry type was correctly initialized");
+
+cleanup:
+    fat_close(fs);
+    END
+}
 
 
 /**
@@ -631,6 +679,7 @@ const struct TestData tests[] = {
     TEST_ENTRY(path_get_components),
     TEST_ENTRY(dir_create),
     TEST_ENTRY(dir_open),
+    TEST_ENTRY(dir_list),
     TEST_ENTRY(file_create),
     TEST_ENTRY(file_erase),
     TEST_ENTRY(dir_erase),
@@ -679,7 +728,8 @@ int main(int argc, char **argv) {
         printf("See above for a full trace of everything that failed\n");
         return 1;
     }
-    printf(TEXT_CORRECT "All passed! %d/%d\n" TEXT_RESET, cum_score, max_score);
+    const char *msg_start = is_all ? "All tests" : "Test";
+    printf(TEXT_CORRECT "%s passed! %d/%d\n" TEXT_RESET, msg_start, cum_score, max_score);
 
     return 0;
 }
