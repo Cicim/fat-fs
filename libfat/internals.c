@@ -3,8 +3,9 @@
  * @authors Claziero, Cicim
  */
 
-#include "internals.h"
 #include <string.h>
+#include <stdio.h>
+#include "internals.h"
 
 /**
  * Returns the bit value at the given block index
@@ -74,7 +75,16 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
 
     // If the path is already absolute, copy it to the destination
     if (strncmp(path, fs->current_directory, strlen(fs->current_directory)) == 0) {
-        strcpy(dest, path);
+        if (strcmp(path, "/") == 0)
+            strcpy(dest, "/");
+        else {
+            strcpy(dest, path);
+
+            // Check if there are trailing slashes
+            while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
+                dest[strlen(dest) - 1] = '\0';
+        }
+
         return OK;
     }
 
@@ -134,12 +144,22 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         if (dest[1] != '\0')
             strcat(dest, "/");
         strcat(dest, path);
+
+        // Check if there are trailing slashes
+        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
+            dest[strlen(dest) - 1] = '\0';
+            
         return OK;
     }
 
     // If the path contains only "."
     if (strcmp(path, ".") == 0) {
         strcpy(dest, fs->current_directory);
+
+        // Check if there are trailing slashes
+        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
+            dest[strlen(dest) - 1] = '\0';
+
         return OK;
     }
     
@@ -162,12 +182,23 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         if (dest[1] != '\0')
             strcat(dest, "/");
         strcat(dest, path);
+
+        // Check if there are trailing slashes
+        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
+            dest[strlen(dest) - 1] = '\0';
+
         return OK;
     }
 
     // If the path begins with "/", then copy the given path to the destination
     if (strncmp(path, "/", 1) == 0) {
         strcpy(dest, path);
+        printf("%s\n", dest);
+
+        // Check if there are trailing slashes
+        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
+            dest[strlen(dest) - 1] = '\0';
+
         return OK;
     }
     
@@ -177,8 +208,8 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         strcat(dest, "/");
     strcat(dest, path);
 
-    // Delete the last "/" if present
-    if (dest[strlen(dest) - 1] == '/')
+    // Check if there are trailing slashes
+    while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
         dest[strlen(dest) - 1] = '\0';
 
     return OK;
