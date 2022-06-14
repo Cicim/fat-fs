@@ -569,10 +569,173 @@ void test_file_write() {
     printf("\t\tres of file_read(150): %d\n", res);
     printf("\t\tbuffer: %s\n", buffer);
 
-    // More tests to come on modes "w+" and "a+"
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Try opening an existing file in w+ mode
+    printf("\nTrying to open an existing file (/dir1/b.txt) in \"w+\" mode...\n");
+    res = file_open(fs, "/dir1/b.txt", &file, "w+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Write some data to the file
+    char data5[35] = "Testing \"w+\" mode (existing file).";
+    printf("TEST 5: Trying to write \"%s\" to the file...\n", data5);
+    printf("\tThe file does not need another block to be allocated.\n");
+    res = file_write(file, data5, 35);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 100);
+    printf("\t\tres of file_read(100): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
 
     // Close the file
     printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Try writing a file that doesn't exist
+    printf("\nTrying to open a file that doesn't exist (/dir2/c.txt) in \"w\" mode...\n");
+    res = file_open(fs, "/dir2/c.txt", &file, "w");
+    printf("\tFatResult = %d [-9 == FILE_NOT_FOUND]\n\n", res);
+
+    // Try writing a file that doesn't exist
+    printf("\nTrying to open a file that doesn't exist (/dir2/c.txt) in \"w+\" mode...\n");
+    res = file_open(fs, "/dir2/c.txt", &file, "w+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Write some data to the file
+    char data6[36] = "Testing \"w+\" mode (new file c.txt).";
+    printf("TEST 6: Trying to write \"%s\" to the file...\n", data6);
+    printf("\tThe file does not need another block to be allocated.\n");
+    res = file_write(file, data6, 36);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 100);
+    printf("\t\tres of file_read(100): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Try opening an existing file in a+ mode
+    printf("\nTrying to open an existing file (/dir1/b.txt) in \"a+\" mode...\n");
+    res = file_open(fs, "/dir1/b.txt", &file, "a+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Append some text to the file
+    char data7[49] = "This string will be appended to b.txt (a+ mode).";
+    printf("TEST 7: Trying to append \"%s\" to the file...\n", data7);
+    printf("\tThe file needs another block to be allocated.\n");
+    res = file_write(file, data7, 49);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 150);
+    printf("\t\tres of file_read(150): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Try opening an inexisting file in a+ mode
+    printf("\nTrying to open an unexisting file (/dir2/e.txt) in \"a+\" mode...\n");
+    res = file_open(fs, "/dir2/e.txt", &file, "a+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Append some text to the file
+    char data8[76] = "This string will be appended to e.txt which did not exist before (a+ mode).";
+    printf("TEST 8: Trying to append \"%s\" to the file...\n", data8);
+    printf("\tThe file needs another block to be allocated.\n");
+    res = file_write(file, data8, 76);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 150);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 150);
+    printf("\t\tres of file_read(150): %d\n", res);
+    printf("\t\tbuffer: %s\n", buffer);
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Try opening an existing file in r mode
+    printf("\nTrying to open an existing file (/dir1/b.txt) in \"r\" mode...\n");
+    res = file_open(fs, "/dir1/b.txt", &file, "r");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Try to write to the file
+    char data9[50] = "This string will not be written to b.txt (r mode).";
+    printf("TEST 9: Trying to write \"%s\" to the file...\n", data9); 
+    printf("\tThe file is opened in \"r\" mode.\n");
+    res = file_write(file, data9, 50);
+    printf("\tres of file_write = %d [-18 == WRITE_INVALID_ARGUMENT]\n", res);
+
+    // Close the file
+    printf("\nClosing the file...\n");
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    // Final test: read again all the files
+    printf("\nFinal test: reading all the files...\n");
+
+    printf("Opening the file /dir1/a.txt...\n");
+    res = file_open(fs, "/dir1/a.txt", &file, "r");
+    printf("\tFatResult = %d\n", res);
+    memset(buffer, 0, 150);
+    res = file_read(file, buffer, 150);
+    printf("\tres of file_read(150): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    printf("Opening the file /dir1/b.txt...\n");
+    res = file_open(fs, "/dir1/b.txt", &file, "r");
+    printf("\tFatResult = %d\n", res);
+    memset(buffer, 0, 150);
+    res = file_read(file, buffer, 150);
+    printf("\tres of file_read(150): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    printf("Opening the file /dir2/c.txt...\n");
+    res = file_open(fs, "/dir2/c.txt", &file, "r");
+    printf("\tFatResult = %d\n", res);
+    memset(buffer, 0, 150);
+    res = file_read(file, buffer, 150);
+    printf("\tres of file_read(150): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
+    res = file_close(file);
+    printf("\tFatResult = %d\n", res);
+
+    printf("Opening the file /dir2/d.txt...\n");
+    res = file_open(fs, "/dir2/e.txt", &file, "r");
+    printf("\tFatResult = %d\n", res);
+    memset(buffer, 0, 150);
+    res = file_read(file, buffer, 150);
+    printf("\tres of file_read(150): %d\n", res);
+    printf("\tbuffer: %s\n", buffer);
     res = file_close(file);
     printf("\tFatResult = %d\n", res);
 

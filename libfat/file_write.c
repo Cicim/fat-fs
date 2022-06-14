@@ -23,12 +23,12 @@ int file_write(FileHandle *file, const char *data, int size) {
 
     // Switch on "mode" of file
     FatResult res;
-    int written_size = 0, num_blocks, size_to_write, num_blocks_taken;
+    int written_size = 0, num_blocks, size_to_write, num_blocks_taken, num_blocks_to_write;
     switch (file->mode) {
         case FILE_MODE_READ:
             return WRITE_INVALID_ARGUMENT;
 
-        case FILE_MODE_WRITE:
+        case FILE_MODE_WRITE: case FILE_MODE_WRITE_CREATE:
             // Move the pointer to the beginning of the file
             res = file_seek(file, 0, FILE_SEEK_SET);
             if (res != OK)
@@ -36,7 +36,7 @@ int file_write(FileHandle *file, const char *data, int size) {
 
             // Calculate the number of blocks to write (0 = no more blocks)
             num_blocks = (size + sizeof(FileHeader)) / file->fs->header->block_size;
-            int num_blocks_to_write = num_blocks;
+            num_blocks_to_write = num_blocks;
 
             // Calculate the number of blocks taken by the file (0 = 1 block only)
             num_blocks_taken = (file->fh->size + sizeof(FileHeader)) / 
@@ -154,29 +154,19 @@ int file_write(FileHandle *file, const char *data, int size) {
 
             break;
 
-        case FILE_MODE_APPEND:
+        case FILE_MODE_APPEND: case FILE_MODE_APPEND_CREATE:
             // Move the pointer to the end of the file
             res = file_seek(file, 0, FILE_SEEK_END);
             if (res != OK)
                 return res;
 
-            // Calculate the offset of the last block
-            int last_block_offset = 
-                (file->fh->size + sizeof(FileHeader)) % file->fs->header->block_size;
-
             // Calculate the number of blocks to write (0 = no more blocks)
-            num_blocks = (size + last_block_offset) / file->fs->header->block_size;
-
-            // Calculate the number of blocks taken by the file (0 = 1 block only)
-            num_blocks_taken = (file->fh->size + sizeof(FileHeader)) / 
-                file->fs->header->block_size;
+            num_blocks = (size + file->offset) / file->fs->header->block_size;
 
             // Extend the file if necessary
             if (num_blocks > 0) {
                 // Go to the last block
-                int block = file->initial_block_number;
-                while (fat_get_next_block(file->fs, block) != FAT_EOF)
-                    block = fat_get_next_block(file->fs, block);
+                int block = file->current_block_number;
 
                 // Add blocks
                 while (num_blocks--) {
@@ -185,13 +175,10 @@ int file_write(FileHandle *file, const char *data, int size) {
                     if (new_block == -1)
                         return NO_FREE_BLOCKS;
 
-                    // Set the new block as the next block
-                    bitmap_set(file->fs, new_block, 1);
-
                     // Set the new block as the next block of the last block
+                    bitmap_set(file->fs, new_block, 1);
                     fat_set_next_block(file->fs, block, new_block);
                     fat_set_next_block(file->fs, new_block, FAT_EOF);
-
                     block = new_block;
                 }
             }
@@ -201,13 +188,13 @@ int file_write(FileHandle *file, const char *data, int size) {
                 // If this is the first block
                 if (file->current_block_number == file->initial_block_number) {
                     size_to_write = 
-                        size > file->fs->header->block_size - last_block_offset ? 
-                        file->fs->header->block_size - sizeof(FileHeader) : size;
+                        size > file->fs->header->block_size - file->offset ? 
+                        file->fs->header->block_size - file->offset : size;
 
                     // Write the data
                     memcpy(file->fs->blocks_ptr 
                         + file->current_block_number * file->fs->header->block_size
-                        + last_block_offset, 
+                        + file->offset, 
                         data + written_size, size_to_write);
 
                     // Update the written size
@@ -230,17 +217,17 @@ int file_write(FileHandle *file, const char *data, int size) {
                 }
 
                 // Change the block
-                if (fat_get_next_block(file->fs, file->current_block_number) != FAT_EOF)
+                if (fat_get_next_block(file->fs, file->current_block_number) != FAT_EOF) {
                     file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
+                    file->offset = 0;
+                }
             }
 
             // Update size
             file->fh->size += written_size;
 
             // Update the offset
-            file->offset = written_size 
-                - num_blocks * file->fs->header->block_size
-                + sizeof(FileHeader);
+            file->offset = (written_size + sizeof(FileHeader)) % file->fs->header->block_size;
 
             // TODO: Update modification time
 

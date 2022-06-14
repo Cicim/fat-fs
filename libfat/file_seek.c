@@ -67,6 +67,14 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
             // Calculate the number of blocks to move starting from the first
             num_blocks = (file->fh->size - offset) / file->fs->header->block_size;
 
+            // Check if the offset is outside of file boundaries
+            if (num_blocks < 0) {
+                // Set the file offset to the last offset calculated
+                file->offset = sizeof(FileHeader);
+                file->current_block_number = file->initial_block_number;
+                break;
+            }
+
             // Calculate the offset in the last block
             last_offset = (file->fh->size - offset + sizeof(FileHeader)) % file->fs->header->block_size;
 
@@ -76,7 +84,11 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
                 file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
 
             // Set the file offset to the last offset calculated
-            file->offset = last_offset - 1;
+            if (num_blocks == -1 && last_offset == sizeof(FileHeader))
+                file->offset = last_offset;
+            else 
+                file->offset = last_offset - 1;
+
             break;
     }
 
