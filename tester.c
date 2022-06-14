@@ -399,7 +399,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(file_erase, 12) {
+TEST(file_erase, 13) {
     FatFs *fs;
     FileHandle *file = NULL;
     int block_number;
@@ -452,6 +452,10 @@ TEST(file_erase, 12) {
     TEST_TITLE("Erasing a file inside a non-existing directory");
     TEST_RESULT(file_erase(fs, "/test/file"), FILE_NOT_FOUND);
 
+    TEST_TITLE("Erasing a directory with file_erase: /dir/test");
+    dir_create(fs, "/dir/test");
+    TEST_RESULT(dir_erase(fs, "/file/test"), NOT_A_FILE);
+
 cleanup:
     fat_close(fs);
     if (file) file_close(file);
@@ -459,7 +463,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(dir_erase, 20) {
+TEST(dir_erase, 22) {
     FatFs *fs;
     DirHandle *dir = NULL;
     INIT_TEMP_FS(fs, 64, 32);
@@ -546,14 +550,15 @@ TEST(dir_erase, 20) {
 
     TEST_RESULT(dir_open(fs, "/dir", &dir), FILE_NOT_FOUND);
     
-
-
-
     TEST_TITLE("Erasing a non-existing directory: /dir");
     TEST_RESULT(dir_erase(fs, "/dir"), FILE_NOT_FOUND);
 
     TEST_TITLE("Erasing a directory inside a non-existing directory");
     TEST_RESULT(dir_erase(fs, "/test/dir"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Erasing a file with dir_erase: /file");
+    file_create(fs, "/file");
+    TEST_RESULT(dir_erase(fs, "/file"), NOT_A_DIRECTORY);
 
 
 cleanup:
@@ -561,6 +566,58 @@ cleanup:
     if (dir) dir_close(dir);
     END
 }
+
+// @author Cicim
+TEST(dir_open, 12) {
+    FatFs *fs;
+    DirHandle *dir = NULL;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    TEST_TITLE("Opening the root: /");
+    TEST_RESULT(dir_open(fs, "/", &dir), OK);
+    if (dir->block_number != 0) {
+        KO_MESSAGE("The block number was not correctly initialized");
+    } else OK_MESSAGE("The block number was correctly initialized");
+    if (dir->count != 0) {
+        KO_MESSAGE("The count was not correctly initialized");
+    } else OK_MESSAGE("The count was correctly initialized");
+    if (dir->fs != fs) {
+        KO_MESSAGE("The fs pointer was not correctly initialized");
+    } else OK_MESSAGE("The fs pointer was correctly initialized");
+
+    TEST_TITLE("Closing it");
+    TEST_RESULT(dir_close(dir), OK);
+
+    int block_number;
+    TEST_TITLE("Opening another directory: /dir");
+    dir_create(fs, "/dir");
+    TEST_RESULT(dir_open(fs, "/dir", &dir), OK);
+    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &block_number);
+    if (dir->block_number != block_number) {
+        KO_MESSAGE("The block number was not correctly initialized");
+    } else OK_MESSAGE("The block number was correctly initialized");
+    if (dir->count != 0) {
+        KO_MESSAGE("The count was not correctly initialized");
+    } else OK_MESSAGE("The count was correctly initialized");
+    if (dir->fs != fs) {
+        KO_MESSAGE("The fs pointer was not correctly initialized");
+    } else OK_MESSAGE("The fs pointer was correctly initialized");
+
+    TEST_TITLE("Opening a non-existing directory: /fake");
+    TEST_RESULT(dir_open(fs, "/fake", &dir), FILE_NOT_FOUND);
+
+    TEST_TITLE("Opening a directory inside a non-existing directory: /test/dir");
+    TEST_RESULT(dir_open(fs, "/test/dir", &dir), FILE_NOT_FOUND);
+
+    TEST_TITLE("Opening a file with dir_open: /file");
+    file_create(fs, "/file");
+    TEST_RESULT(dir_open(fs, "/file", &dir), NOT_A_DIRECTORY);
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
 
 
 /**
@@ -573,6 +630,7 @@ const struct TestData tests[] = {
     TEST_ENTRY(path_get_absolute),
     TEST_ENTRY(path_get_components),
     TEST_ENTRY(dir_create),
+    TEST_ENTRY(dir_open),
     TEST_ENTRY(file_create),
     TEST_ENTRY(file_erase),
     TEST_ENTRY(dir_erase),
