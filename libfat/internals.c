@@ -82,9 +82,17 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     if (strcmp(path, "..") == 0) {
         // Get the parent directory
         char *parent_dir = strrchr(fs->current_directory, '/');
-        // If the parent directory is the root directory, return an error
-        if (parent_dir == fs->current_directory)
+
+        // If the current directory is the root directory, return an error
+        if (strcmp(fs->current_directory, "/") == 0)
             return INVALID_PATH;
+
+        // If the parent directory is the root directory
+        if (parent_dir == fs->current_directory) {
+            strcpy(dest, "/");
+            return OK;
+        }
+
         // Otherwise, copy the parent directory to the destination
         strncpy(dest, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
         dest[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
@@ -94,14 +102,23 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
 
     // If the path begins with "../"
     int flag = 0;
+    strcpy(dest, fs->current_directory);
     while (strncmp(path, "../", 3) == 0) {
         flag = 1;
-
         // Get the parent directory
-        char *parent_dir = strrchr(fs->current_directory, '/');
-        // If the parent directory is the root directory, return an error
-        if (parent_dir == fs->current_directory)
+        char *parent_dir = strrchr(dest, '/');
+
+        // If the current directory is the root directory, return an error
+        if (strcmp(dest, "/") == 0)
             return INVALID_PATH;
+
+        // If the parent directory is the root directory
+        if (parent_dir == dest) {
+            strcpy(dest, "/");
+            path += 3;
+            continue;
+        }
+
         // Otherwise, copy the parent directory to the destination
         strncpy(dest, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
         dest[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
@@ -114,7 +131,8 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         return OK;
     else if (flag) {
         // Append the rest of the path to the destination
-        strcat(dest, "/");
+        if (dest[1] != '\0')
+            strcat(dest, "/");
         strcat(dest, path);
         return OK;
     }
@@ -141,7 +159,8 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         return OK;
     else if (flag) {
         // Append the rest of the path to the destination
-        strcat(dest, "/");
+        if (dest[1] != '\0')
+            strcat(dest, "/");
         strcat(dest, path);
         return OK;
     }
@@ -157,6 +176,10 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     if (strcmp(fs->current_directory, "/") != 0) 
         strcat(dest, "/");
     strcat(dest, path);
+
+    // Delete the last "/" if present
+    if (dest[strlen(dest) - 1] == '/')
+        dest[strlen(dest) - 1] = '\0';
 
     return OK;
 }
