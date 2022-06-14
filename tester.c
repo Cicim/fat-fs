@@ -48,6 +48,10 @@ typedef struct TestData {
         int score = 0;                     \
         int test_number = 0;               \
 
+#define INIT_TEMP_FS(fs, size, blocks) {\
+    if (fat_init(TEMP_FILE, size, blocks) != OK) TEST_ABORT("Could not initialize temp FS");\
+    if (fat_open(&fs, TEMP_FILE) != OK) TEST_ABORT("Could not open temp FS"); }
+
 #define TEST_TITLE(text) \
     if (ext) printf(TEXT_BOLD "   %2d) " TEXT_RESET TEXT_UNDERLINE text TEXT_RESET "\n", ++test_number)
 
@@ -69,10 +73,27 @@ typedef struct TestData {
                         "\n" TEXT_RESET,                        \
                         fat_result_string(result), result,      \
                         fat_result_string(expected), expected); \
-        } }
+        }                                                       \
+    }
+
+#define COMPARE_STRINGS(got, expected) \
+    if (strcmp(got, expected) == 0) {                         \
+        ++score;                                              \
+        if (ext) printf("       " TEXT_CORRECT "✓ Got "       \
+                        TEXT_BOLD "\"%s\"" TEXT_RESET         \
+                        TEXT_CORRECT " as expected\n"         \
+                        TEXT_RESET, got);                     \
+    }                                                         \
+    else if (ext) printf("       " TEXT_WRONG "✘ Got "        \
+                        TEXT_BOLD "\"%s\"" TEXT_RESET         \
+                        TEXT_WRONG " but expected "           \
+                        TEXT_BOLD "\"%s\"" TEXT_RESET "\n",   \
+                        got, expected);
+
 
 #define OK_MESSAGE(text) { if (ext) puts("       " TEXT_CORRECT "✓ " text TEXT_RESET); score++; }
-#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG text "✘ " TEXT_RESET); goto cleanup; }
+#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG text "✘ " TEXT_RESET); }
+#define TEST_ABORT(text) { KO_MESSAGE(text); goto cleanup; }
 
 #define END if (ext) printf("   Score: %d/%d\n", score, test_count); return score; }
 
@@ -81,14 +102,15 @@ typedef struct TestData {
 /**
  * Tests for each function
  */
-TEST(fat_init, 10)
+// @author Cicim
+TEST(fat_init, 10) {
     remove(TEMP_FILE);
 
     TEST_TITLE("Correct parameters");
     TEST_RESULT(fat_init(TEMP_FILE, 32, 32), OK);
     FILE *file = fopen(TEMP_FILE, "r");
     if (file == NULL) 
-        KO_MESSAGE("The file was not created");
+        TEST_ABORT("The file was not created");
     OK_MESSAGE("The file was created");
     fseek(file, 0, SEEK_END);
     if (ftell(file) != 1156 + sizeof(FatHeader)) 
@@ -116,9 +138,11 @@ TEST(fat_init, 10)
     TEST_RESULT(fat_init(TEMP_FILE, 33, 32), INVALID_BLOCK_SIZE);
 cleanup:
     remove(TEMP_FILE);
-END
+    END
+}
 
-TEST(fat_open, 5)
+// @author Cicim
+TEST(fat_open, 5) {
     FatFs *fs;
 
     remove(TEMP_FILE);
@@ -142,8 +166,52 @@ TEST(fat_open, 5)
 
 cleanup:
     remove(TEMP_FILE);
-END
+    END
+}
 
+// @author Cicim
+TEST(path_get_absolute, 28) {
+    #define TEST_PATH_SUM(text, from, path, expected)                        \
+        TEST_TITLE(text ": " from " + " path " = " expected);                \
+        strcpy(fs->current_directory, from);                                 \
+        TEST_RESULT(path_get_absolute(fs, path, fs->current_directory), OK); \
+        COMPARE_STRINGS(fs->current_directory, expected);
+    #define TEST_INVALID_PATH_SUM(text, from, path)     \
+        TEST_TITLE(text ": " from " + " path);          \
+        strcpy(fs->current_directory, from);            \
+        TEST_RESULT(path_get_absolute(fs, path, fs->current_directory), INVALID_PATH);
+
+    // Init a temp fs
+    FatFs *fs;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    TEST_TITLE("The current directory starts from the root");
+    COMPARE_STRINGS(fs->current_directory, "/");
+
+    TEST_TITLE("Empty-string addition");
+    TEST_RESULT(path_get_absolute(fs, "", fs->current_directory), INVALID_PATH);
+
+    // Move to different directories
+    TEST_PATH_SUM("Relative addition", "/", "dir", "/dir");
+    TEST_PATH_SUM("Nested directories", "/dir", "dir", "/dir/dir");
+    TEST_PATH_SUM("Absolute addition", "/dir", "/dir/dir", "/dir/dir");
+    TEST_PATH_SUM("Trailing slash", "/", "dir/", "/dir");
+    TEST_PATH_SUM("Trailing slash", "/dir", "dir/", "/dir/dir");
+    TEST_PATH_SUM("Directory up", "/dir", "..", "/");
+    TEST_PATH_SUM("Directory up", "/dir", "../", "/");
+    TEST_PATH_SUM("Directory up", "/dir", "../test", "/test");
+    TEST_PATH_SUM("Directory up", "/dir/dir", "../test", "/dir/test");
+    TEST_PATH_SUM("Same directory", "/dir", ".", "/dir");
+    TEST_PATH_SUM("Same directory", "/", "./dir", "/dir");
+    TEST_INVALID_PATH_SUM("Invalid token", "/dir", "...");
+    TEST_INVALID_PATH_SUM("Too many directory up", "/", "..");
+    TEST_INVALID_PATH_SUM("Too many directory up", "/dir", "../../test");
+    TEST_INVALID_PATH_SUM(".. without the slash", "/dir", "..dir");
+
+cleanup:
+    fat_close(fs);
+    END
+}
 
 
 /**
@@ -154,6 +222,7 @@ END
 const struct TestData tests[] = {
     TEST_ENTRY(fat_init),
     TEST_ENTRY(fat_open),
+    TEST_ENTRY(path_get_absolute),
 };
 
 int main(int argc, char **argv) {

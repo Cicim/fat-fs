@@ -2,6 +2,7 @@
 
 CC = gcc
 CCOPTS = --std=gnu99 -Wall 
+TESTER_CCOPTS = $(CCOPTS) -Wno-unused-label
 
 USER_HEADERS = libfat/fat.h
 LIB_HEADERS = libfat/internals.h
@@ -22,7 +23,7 @@ fat_test: $(LIB_HEADERS) $(LIBS) fat_test.c
 	$(CC) $(CCOPTS) -o $@ fat_test.c $(LIBS)
 
 tester: $(LIB_HEADERS) $(LIBS) tester.c
-	$(CC) $(CCOPTS) -o $@ tester.c $(LIBS)
+	$(CC) $(TESTER_CCOPTS) -o $@ tester.c $(LIBS)
 
 clean:
 	rm -rf *.o *.dat $(BINS)
