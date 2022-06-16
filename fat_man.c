@@ -14,6 +14,14 @@
 #define MAX_COMMAND_ARGUMENTS 4
 
 /**
+ * Utility functions
+ */
+// Text styles
+#define TEXT_BLUE "\033[34m"
+#define TEXT_GREEN "\033[32m"
+#define TEXT_RESET "\033[0m"
+
+/**
  * Commands
  */
 
@@ -27,6 +35,7 @@ FatResult cmd_cd(FatFs *fs, const char *path) {
 
     return dir_change(fs, path);
 }
+
 /**
  * Create a directory
  * @author Cicim
@@ -37,6 +46,7 @@ FatResult cmd_mkdir(FatFs *fs, const char *path) {
 
     return dir_create(fs, path);
 }
+
 /**
  * Create a file
  * @author Cicim
@@ -48,6 +58,127 @@ FatResult cmd_touch(FatFs *fs, const char *path) {
     return file_create(fs, path);
 }
 
+/**
+ * LS command argument parsing
+ * @author Claziero
+ */
+#define LS 0
+#define LS_A 1
+#define LS_L 2
+#define LS_AL 3
+#define LS_ARGUMENT_UNKNOWN -1
+#define LS_ARGUMENT_PATH -2
+
+int ls_parse_argument(char *arg) {
+    if (arg == NULL)
+        return LS;
+    else if (strcmp(arg, "--all") == 0 || strcmp(arg, "-a") == 0)
+        return LS_A;
+    else if (strcmp(arg, "-l") == 0)
+        return LS_L;
+    else if (strcmp(arg, "-al") == 0 || strcmp(arg, "-la") == 0)
+        return LS_AL;
+    else if (arg[0] == '-')
+        return LS_ARGUMENT_UNKNOWN;
+    else
+        return LS_ARGUMENT_PATH;
+}
+
+/**
+ * List directory contents
+ * @author Claziero
+ */
+FatResult cmd_ls(FatFs *fs, char **command_arguments) {
+    if (command_arguments == NULL)
+        return INVALID_PATH;
+
+    // Open the directory
+    DirHandle *dir = NULL;
+    DirEntry entry;
+    FatResult res;
+
+    // Look for all arguments
+    int i = 0;
+    int path = -1;
+    int list_all = FALSE;
+    int list_long = FALSE;
+    int list_here = FALSE;
+    int argument = ls_parse_argument(command_arguments[i]);
+    while (1) {
+        switch (argument) {
+            case LS:
+                list_here = TRUE;
+                break;
+            case LS_A:
+                list_all = TRUE;
+                break;
+            case LS_L:
+                list_long = TRUE;
+                break;
+            case LS_AL:
+                list_all = list_long = TRUE;
+                break;
+            case LS_ARGUMENT_PATH:
+                path = i;
+                break;
+            case LS_ARGUMENT_UNKNOWN:
+                printf("Unknown argument: %s\n", command_arguments[i]);
+                return LS_INVALID_ARGUMENT;
+        }
+        if (++i == MAX_COMMAND_ARGUMENTS || list_here)
+            break;
+        argument = ls_parse_argument(command_arguments[i]);
+    }
+
+    if (path != -1) list_here = FALSE;
+
+    // Open the correct directory
+    if (list_here) {
+        res = dir_open(fs, fs->current_directory, &dir);
+        if (res != OK)
+            return res;
+    }
+    else {
+        res = dir_open(fs, command_arguments[path], &dir);
+        if (res != OK)
+            return res;
+    }
+
+    // If "-a" is used, list also "." and ".." directories
+    if (list_all) {
+        printf(TEXT_BLUE ".   " TEXT_RESET);
+        if (list_long) printf("\n");
+        
+        printf(TEXT_BLUE "..   " TEXT_RESET);
+        if (list_long) printf("\n");
+    }
+
+    // List the contents
+    while ((res = dir_list(dir, &entry)) == OK) {
+        if (entry.type == DIR_ENTRY_DIRECTORY) {
+            // Condition on hidden files
+            if (!list_all && entry.name[0] == '.') continue;
+
+            printf(TEXT_BLUE "%s   " TEXT_RESET, entry.name);
+            if (list_long) printf("\n");
+        }
+        else {
+            // Condition on hidden files
+            if (!list_all && entry.name[0] == '.') continue;
+
+            printf("%s   ", entry.name);
+            if (list_long) printf("\n");
+        }
+    }
+    if (!list_long) printf("\n");
+
+    // Close the directory
+    res = dir_close(dir);
+    if (res != OK)
+        return res;
+    
+    return OK;
+}
 
 /**
  * Help printing
@@ -114,6 +245,8 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_mkdir(fs, command[1]);
     else if (strcmp(cmd_name, "touch") == 0)
         res = cmd_touch(fs, command[1]);
+    else if (strcmp(cmd_name, "ls") == 0)
+        res = cmd_ls(fs, command + 1);
     else
         printf("Unknown command: %s\n", cmd_name);
 

@@ -33,6 +33,7 @@ typedef enum FatResult {
     NOT_A_FILE = -17,
     WRITE_INVALID_ARGUMENT = -18,
     FILE_OPEN_INVALID_ARGUMENT = -19,
+    LS_INVALID_ARGUMENT = -20,
 } FatResult;
 
 typedef enum DirEntryType {

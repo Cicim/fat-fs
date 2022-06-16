@@ -4,7 +4,6 @@
  */
 
 #include <string.h>
-#include <stdio.h>
 #include "internals.h"
 
 /**
@@ -193,7 +192,6 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     // If the path begins with "/", then copy the given path to the destination
     if (strncmp(path, "/", 1) == 0) {
         strcpy(dest, path);
-        printf("%s\n", dest);
 
         // Check if there are trailing slashes
         while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
@@ -247,23 +245,26 @@ FatResult path_get_components(FatFs *fs, const char *path, char *path_buffer, ch
 }
 
 static const char *fat_result_str_table[] = {
-    [OK]                     = "Ok",
-    [-INVALID_BLOCKS_COUNT]  = "Invalid number of blocks",
-    [-INVALID_BLOCK_SIZE]    = "Invalid block size",
-    [-FAT_OPEN_ERROR]        = "Cannot open the FAT buffer file",
-    [-FAT_BUFFER_ERROR]      = "Error with the buffer containing the FAT FS",
-    [-FAT_CLOSE_ERROR]       = "Cannot close the FAT buffer file",
-    [-INVALID_PATH]          = "Invalid path",
-    [-DIR_END_NOT_FOUND]     = "Cannot find DIR_END entry in the last block of the directory",
-    [-END_OF_DIR]            = "Directory end",
-    [-FILE_NOT_FOUND]        = "File not found",
-    [-NOT_A_DIRECTORY]       = "Not a directory",
-    [-NO_FREE_BLOCKS]        = "No free blocks",
-    [-FILE_ALREADY_EXISTS]   = "File already exists",
-    [-OUT_OF_MEMORY]         = "Out of memory",
-    [-INVALID_BLOCK]         = "Invalid block",
-    [-SEEK_INVALID_ARGUMENT] = "Invalid argument for seek",
-    [-NOT_A_FILE]            = "Not a file",   
+    [OK]                          = "Ok",
+    [-INVALID_BLOCKS_COUNT]       = "Invalid number of blocks",
+    [-INVALID_BLOCK_SIZE]         = "Invalid block size",
+    [-FAT_OPEN_ERROR]             = "Cannot open the FAT buffer file",
+    [-FAT_BUFFER_ERROR]           = "Error with the buffer containing the FAT FS",
+    [-FAT_CLOSE_ERROR]            = "Cannot close the FAT buffer file",
+    [-INVALID_PATH]               = "Invalid path",
+    [-DIR_END_NOT_FOUND]          = "Cannot find DIR_END entry in the last block of the directory",
+    [-END_OF_DIR]                 = "Directory end",
+    [-FILE_NOT_FOUND]             = "File not found",
+    [-NOT_A_DIRECTORY]            = "Not a directory",
+    [-NO_FREE_BLOCKS]             = "No free blocks",
+    [-FILE_ALREADY_EXISTS]        = "File already exists",
+    [-OUT_OF_MEMORY]              = "Out of memory",
+    [-INVALID_BLOCK]              = "Invalid block",
+    [-SEEK_INVALID_ARGUMENT]      = "Invalid argument for seek",
+    [-NOT_A_FILE]                 = "Not a file",
+    [-WRITE_INVALID_ARGUMENT]     = "Invalid argument for write",
+    [-FILE_OPEN_INVALID_ARGUMENT] = "Invalid argument for file open",
+    [-LS_INVALID_ARGUMENT]        = "Invalid argument for ls",
 };
 
 /**
