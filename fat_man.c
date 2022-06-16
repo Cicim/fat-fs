@@ -72,26 +72,25 @@ typedef struct ls_args {
 void ls_parse_argument(char *arg, ls_args *args) {
     if (arg == NULL) 
         return;
-    else if (strcmp(arg, "--all") == 0 || strcmp(arg, "-a") == 0) {
-        args->argument_all = 1;
-        return;
-    }
-    else if (strcmp(arg, "-l") == 0) {
-        args->argument_long = 1;
-        return;
-    }
-    else if (strcmp(arg, "-al") == 0 || strcmp(arg, "-la") == 0) {
-        args->argument_all = args->argument_long = 1;
-        return;
-    }
-    else if (arg[0] == '-') {
-        args->argument_unknown = 1;
-        return;
-    }
-    else {
-        args->argument_path = 1;
-        return;
-    }
+
+    if (arg[0] == '-') {
+        if (arg[1] == '-') {
+            if (strcmp(arg, "--all") == 0)
+                args->argument_all = TRUE;
+            else
+                args->argument_unknown = TRUE;
+            return;
+        }
+
+        for (int i = 1; arg[i]; i++) {
+            if (arg[i] == 'l')
+                args->argument_long = TRUE;
+            else if (arg[i] == 'a')
+                args->argument_all = TRUE;
+            else
+                args->argument_unknown = TRUE;
+        }
+    } else args->argument_path = TRUE;
 }
 
 /**
