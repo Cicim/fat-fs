@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "internals.h"
 
 /**
@@ -25,7 +26,8 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
     (*file)->fs = fs;
     (*file)->initial_block_number = block_number;
     (*file)->current_block_number = block_number;
-    (*file)->offset = sizeof(FileHeader); // Offset initially pointing to the actual data
+    (*file)->block_offset = sizeof(FileHeader); // Offset initially pointing to the actual data
+    (*file)->file_offset = 0;
     (*file)->fh = (FileHeader *) (fs->blocks_ptr + block_number * fs->header->block_size);
 
     return OK;
@@ -39,20 +41,24 @@ FatResult file_open_by_block(FatFs *fs, int block_number, FileHandle **file) {
 FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) {
     FatResult res;
 
+    // Check if mode is valid
+    if (mode == NULL || !*mode)
+        return FILE_OPEN_INVALID_ARGUMENT;
+
     // Get the file open mode
-    FileMode mod;
-    if (strcmp(mode, "r") == 0)
-        mod = FILE_MODE_READ;
-    else if (strcmp(mode, "w") == 0)
-        mod = FILE_MODE_WRITE;
-    else if (strcmp(mode, "a") == 0)
-        mod = FILE_MODE_APPEND;
-    else if (strcmp(mode, "w+") == 0)
-        mod = FILE_MODE_WRITE_CREATE;
-    else if (strcmp(mode, "a+") == 0)
-        mod = FILE_MODE_APPEND_CREATE;
-    else
-        return FILE_OPEN_INVALID_ARGUMENT;    
+    int can_read = 0, can_write = 0, create = 0, append = 0;
+    do {
+        if (*mode == 'r')
+            can_read = 1;
+        else if (*mode == 'w')
+            can_write = 1;
+        else if (*mode == 'a')
+            append = can_write = 1;
+        else if (*mode == '+')
+            create = 1;
+        else
+            return FILE_OPEN_INVALID_ARGUMENT;
+    } while (*++mode);
 
     // Split "path" in directory and file name
     char path_buffer[MAX_PATH_LENGTH];
@@ -78,28 +84,32 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) 
     while (1) {
         res = dir_handle_next(fs, &dir, &entry);
         
-        // If the file does not exist and you don't want to create it, return an error
-        if (res == END_OF_DIR && 
-            (mod == FILE_MODE_READ || mod == FILE_MODE_WRITE || mod == FILE_MODE_APPEND))
-            return FILE_NOT_FOUND;
+        // If the file does not exist
+        if (res == END_OF_DIR) {
+            // If you don't want to create it, return an error
+            if (!create)
+                return FILE_NOT_FOUND;
 
-        // Else if file does not exist and you want to create it, create it
-        else if (res == END_OF_DIR) {
-            res = file_create(fs, path);
+            // Else create it
+            res = dir_insert(fs, dir_block, &entry, DIR_ENTRY_FILE, name);
             if (res != OK)
                 return res;
+            break;
         }
-            
+
         // Else there's another error
         else if (res != OK)
             return res;
 
         if (strcmp(entry->name, name) == 0) {
-            // Save the file block number
-            file_block = entry->first_block;
+            if (entry->type != DIR_ENTRY_FILE)
+                return NOT_A_FILE;
             break;
         }            
     }
+
+    // Save the file block number
+    file_block = entry->first_block;
     
     // Open the file
     res = file_open_by_block(fs, file_block, file);
@@ -107,7 +117,12 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) 
         return res;
 
     // Set the file mode
-    (*file)->mode = mod;
+    (*file)->can_read = can_read;
+    (*file)->can_write = can_write;
+
+    // If the file is opened in append mode, seek to the end of the file
+    if (append)
+        return file_seek(*file, 0, FILE_SEEK_END);   
 
     return OK;
 }
@@ -118,5 +133,16 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) 
  */
 FatResult file_close(FileHandle *file) {
     free(file);
+    return OK;
+}
+
+/** 
+ * Prints the file contents to stdout
+ * @author Claziero
+ */
+FatResult file_print(FileHandle *file, char *buffer) {
+    for (int i = 0; i < file->fh->size; i++) {
+        printf("%c", buffer[i]);
+    }
     return OK;
 }

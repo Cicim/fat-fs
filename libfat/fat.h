@@ -42,13 +42,6 @@ typedef enum DirEntryType {
     DIR_ENTRY_DIRECTORY = 2
 } DirEntryType;
 
-typedef enum FileMode {
-    FILE_MODE_READ = 0,
-    FILE_MODE_WRITE = 1,
-    FILE_MODE_APPEND = 2,
-    FILE_MODE_WRITE_CREATE = 3,
-    FILE_MODE_APPEND_CREATE = 4
-} FileMode;
 
 /**
  * Structs
@@ -90,8 +83,10 @@ typedef struct FileHandle {
     FileHeader *fh;
     int initial_block_number;
     int current_block_number;
-    int offset;
-    FileMode mode;
+    int block_offset;
+    int file_offset;
+    char can_write:1;
+    char can_read:1;
 } FileHandle;
 
 // Data needed by operations on a directory
@@ -145,6 +140,12 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode);
 
 // Frees the memory occupied by a file handle
 FatResult file_close(FileHandle *file);
+
+// Prints the file contents to stdout
+FatResult file_print(FileHandle *file, char *buffer);
+
+// Changes file dimension
+FatResult change_file_dimension(FileHandle *file, int size);
 
 // Writes data from a buffer into file
 // returns a FatResult or the number of written bytes

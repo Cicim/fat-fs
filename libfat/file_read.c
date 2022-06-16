@@ -3,9 +3,9 @@
  * @author Claziero
  */
 
-#include "internals.h"
 #include <stdlib.h>
 #include <string.h>
+#include "internals.h"
 
 /**
  * Reads data from file into a buffer
@@ -29,7 +29,7 @@ int file_read(FileHandle *file, char *buffer, int size) {
         }    
         while (fat_get_next_block(file->fs, curr_block) != FAT_EOF);
     }        
-    total_offset += file->offset - sizeof(FileHeader);
+    total_offset += file->block_offset - sizeof(FileHeader);
 
     // Check if size exceeds the file size from the current offset
     if (total_offset + size >= file->fh->size)
@@ -41,27 +41,28 @@ int file_read(FileHandle *file, char *buffer, int size) {
         // Go to the current block of the file
         data = file->fs->blocks_ptr 
             + file->current_block_number * file->fs->header->block_size 
-            + file->offset;
+            + file->block_offset;
 
         // Read until the end of the block
-        int size_to_read = size > file->fs->header->block_size - file->offset ?
-            file->fs->header->block_size - file->offset : size;
+        int size_to_read = size > file->fs->header->block_size - file->block_offset ?
+            file->fs->header->block_size - file->block_offset : size;
         memcpy(buffer, data, size_to_read);
 
         // Update the size of the read and the buffer pointer
         read_size += size_to_read;
         size -= size_to_read;
         buffer += size_to_read;
+        file->file_offset += size_to_read;
 
         // Check if the current block is the end of the file
         if (fat_get_next_block(file->fs, file->current_block_number) != FAT_EOF) {
             // Update the offset and the current block number
             file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
-            file->offset = 0;
+            file->block_offset = 0;
         }
         else {
             // Else update the offset
-            file->offset += size_to_read;
+            file->block_offset += size_to_read;
             return read_size;  
         } 
     }

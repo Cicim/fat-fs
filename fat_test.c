@@ -283,12 +283,12 @@ void test_file_read() {
 
     // Write some data to the file MANUALLY
     char data[13] = "Hello World!";
-    data_ptr += file->offset;
+    data_ptr += file->block_offset;
     memcpy(data_ptr, data, 13);
     printf("Data written: \"%s\", real dimension: 13, set size: 16\n", data);
 
     // Read the data
-    char buffer[100] = "";
+    char buffer[300] = "";
     res = file_read(file, buffer, 3);
     printf("res of file_read(3): %d\n", res);
     printf("buffer: %s\n", buffer);
@@ -416,7 +416,7 @@ void test_file_seek() {
 
     // Write some data to the file MANUALLY
     char data[42] = "This is a test for the file_seek function";
-    data_ptr += file->offset;
+    data_ptr += file->block_offset;
     memcpy(data_ptr, data, 42);
     printf("Data written: \"%s\", \nreal dimension: 42, set size: 42\n\n", data);
 
@@ -426,7 +426,7 @@ void test_file_seek() {
     printf("\tFatResult = %d\n", res);
 
     // Read the data
-    char buffer[100] = "";
+    char buffer[300] = "";
     res = file_read(file, buffer, 10);
     printf("\tres of file_read(10): %d\n", res);
     printf("\tbuffer: %s\n", buffer);
@@ -437,7 +437,7 @@ void test_file_seek() {
     printf("\tFatResult = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 100);
+    memset(buffer, 0, 300);
     res = file_read(file, buffer, 10);
     printf("\tres of file_read(10): %d\n", res);
     printf("\tbuffer: %s\n", buffer);
@@ -448,7 +448,7 @@ void test_file_seek() {
     printf("\tFatResult = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 100);
+    memset(buffer, 0, 300);
     res = file_read(file, buffer, 10);
     printf("\tres of file_read(10): %d\n", res);
     printf("\tbuffer: %s\n", buffer);
@@ -504,46 +504,51 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    char buffer[150] = "";
+    char buffer[300] = "";
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 100);
-    printf("\t\tres of file_read(100): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Overwrite the data
     printf("TEST 2: Trying to overwrite the data in the file...\n");
-    // res = file_seek(file, 0, FILE_SEEK_SET);
-    char data2[42] = "This is a string that overwrites the data";
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    char data2[43] = "This is a string that overwrites the data.";
     printf("\tTrying to write \"%s\" to the file...\n", data2);
     printf("\tThe file does not need another block to be allocated.\n");
-    res = file_write(file, data2, 42);
+    res = file_write(file, data2, 43);
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 100);
-    printf("\t\tres of file_read(100): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Write more data to the file
     printf("TEST 3: Trying to write more data to the file...\n");
-    // res = file_seek(file, 0, FILE_SEEK_SET);
-    char data3[75] = "This string will take more than a block to be stored because it's too long";
+    char data3[76] = "This string will take more than a block to be stored because it's too long.";
     printf("\tTrying to write \"%s\" to the file...\n", data3);
     printf("\tThe file needs another block to be allocated.\n");
-    res = file_write(file, data3, 75);
+    res = file_write(file, data3, 76);
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 100);
-    printf("\t\tres of file_read(100): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Reopen the file in append mode
     printf("\nClosing the file...\n");
@@ -555,19 +560,21 @@ void test_file_write() {
 
     // Append some text to the file
     printf("TEST 4: Trying to append some text to the file...\n");
-    char data4[52] = ".This is a string that will be appended to the file";
+    char data4[52] = "This is a string that will be appended to the file.";
     printf("\tTrying to write \"%s\" to the file...\n", data4);
     printf("\tThe file needs another block to be allocated.\n");
     res = file_write(file, data4, 52);
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 150);
-    printf("\t\tres of file_read(150): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -587,12 +594,14 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 100);
-    printf("\t\tres of file_read(100): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -617,12 +626,14 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 100);
-    printf("\t\tres of file_read(100): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -642,12 +653,14 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 150);
-    printf("\t\tres of file_read(150): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -667,12 +680,14 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 150);
+    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 150);
-    printf("\t\tres of file_read(150): %d\n", res);
-    printf("\t\tbuffer: %s\n", buffer);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -702,40 +717,48 @@ void test_file_write() {
     printf("Opening the file /dir1/a.txt...\n");
     res = file_open(fs, "/dir1/a.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 150);
-    res = file_read(file, buffer, 150);
-    printf("\tres of file_read(150): %d\n", res);
-    printf("\tbuffer: %s\n", buffer);
+    memset(buffer, 0, 300);
+    res = file_read(file, buffer, 300);
+    printf("\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
     res = file_close(file);
     printf("\tFatResult = %d\n", res);
 
     printf("Opening the file /dir1/b.txt...\n");
     res = file_open(fs, "/dir1/b.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 150);
-    res = file_read(file, buffer, 150);
-    printf("\tres of file_read(150): %d\n", res);
-    printf("\tbuffer: %s\n", buffer);
+    memset(buffer, 0, 300);
+    res = file_read(file, buffer, 300);
+    printf("\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
     res = file_close(file);
     printf("\tFatResult = %d\n", res);
 
     printf("Opening the file /dir2/c.txt...\n");
     res = file_open(fs, "/dir2/c.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 150);
-    res = file_read(file, buffer, 150);
-    printf("\tres of file_read(150): %d\n", res);
-    printf("\tbuffer: %s\n", buffer);
+    memset(buffer, 0, 300);
+    res = file_read(file, buffer, 300);
+    printf("\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
     res = file_close(file);
     printf("\tFatResult = %d\n", res);
 
-    printf("Opening the file /dir2/d.txt...\n");
+    printf("Opening the file /dir2/e.txt...\n");
     res = file_open(fs, "/dir2/e.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 150);
-    res = file_read(file, buffer, 150);
-    printf("\tres of file_read(150): %d\n", res);
-    printf("\tbuffer: %s\n", buffer);
+    memset(buffer, 0, 300);
+    res = file_read(file, buffer, 300);
+    printf("\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    printf("\n");
     res = file_close(file);
     printf("\tFatResult = %d\n", res);
 
