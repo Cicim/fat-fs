@@ -22,10 +22,6 @@ typedef struct TestData {
 // Test shorthand
 #define TEST_ENTRY(n) {.name = #n, .max_score = test_count_##n, .test_fn = test_##n}
 
-
-/**
- * Utility functions
- */
 // Text styles
 #define TEXT_BOLD "\033[1m"
 #define TEXT_UNDERLINE "\033[4m"
@@ -43,66 +39,15 @@ typedef struct TestData {
 #define TEXT_CORRECT TEXT_RGB_FG(10, 190, 0)
 #define TEXT_WRONG TEXT_RGB_FG(231, 88, 90)
 
-// Pipeline
-#define TEST(n, c) \
-    static const int test_count_##n = (c); \
-    int test_##n(int ext) {                \
-        int score = 0;                     \
-        int test_number = 0;               \
 
-#define INIT_TEMP_FS(fs, size, blocks) {\
-    if (fat_init(TEMP_FILE, size, blocks) != OK) TEST_ABORT("Could not initialize temp FS");\
-    if (fat_open(&fs, TEMP_FILE) != OK) TEST_ABORT("Could not open temp FS"); }
-
-#define TEST_TITLE(text) \
-    if (ext) printf(TEXT_BOLD "   %2d) " TEXT_RESET TEXT_UNDERLINE text TEXT_RESET "\n", ++test_number)
-
-#define TEST_RESULT(operation, expected) {\
-    FatResult result = operation;                               \
-    if (result == expected) {                                   \
-        score++;                                                \
-        if (ext) printf("       " TEXT_CORRECT "✓ Got "         \
-                        TEXT_BOLD "[%s] (%d)"                   \
-                        TEXT_RESET TEXT_CORRECT                 \
-                        " as expected\n" TEXT_RESET,            \
-                        fat_result_string(result), result);     \
-    } else {                                                    \
-        if (ext) printf("       " TEXT_WRONG "✘ Got "           \
-                        TEXT_BOLD "[%s] (%d)"                   \
-                        TEXT_RESET TEXT_WRONG                   \
-                        " but expected " TEXT_BOLD              \
-                        "[%s] (%d)" TEXT_RESET TEXT_WRONG       \
-                        "\n" TEXT_RESET,                        \
-                        fat_result_string(result), result,      \
-                        fat_result_string(expected), expected); \
-        }                                                       \
-    }
-
-#define COMPARE_STRINGS(got, expected) \
-    if (strcmp(got, expected) == 0) {                         \
-        ++score;                                              \
-        if (ext) printf("       " TEXT_CORRECT "✓ Got "       \
-                        TEXT_BOLD "\"%s\"" TEXT_RESET         \
-                        TEXT_CORRECT " as expected\n"         \
-                        TEXT_RESET, got);                     \
-    }                                                         \
-    else if (ext) printf("       " TEXT_WRONG "✘ Got "        \
-                        TEXT_BOLD "\"%s\"" TEXT_RESET         \
-                        TEXT_WRONG " but expected "           \
-                        TEXT_BOLD "\"%s\"" TEXT_RESET "\n",   \
-                        got, expected);
-
-
-#define OK_MESSAGE(text) { if (ext) puts("       " TEXT_CORRECT "✓ " text TEXT_RESET); score++; }
-#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG "✘ " text TEXT_RESET); }
-#define TEST_ABORT(text) { KO_MESSAGE(text); goto cleanup; }
-
-#define END return score; }
-
-/** 
- * Helper functions
+/**
+ * Utility functions
  */
-FatResult file_exists(FatFs *fs, const char *path, DirEntryType type, int *block_number) {
+/**
+ * Gets the block number of the entry at the given path
+ * @author Cicim
+ */
+FatResult get_file_blocknum(FatFs *fs, const char *path, DirEntryType type, int *block_number) {
     FatResult res;
 
     // Split "path" in directory and file name
@@ -146,27 +91,9 @@ FatResult file_exists(FatFs *fs, const char *path, DirEntryType type, int *block
     }
 }
 
-#define TEST_EXISTS(path, type, block_number_ptr) { \
-    FatResult result = file_exists(fs, path, type, block_number_ptr);           \
-    if (ext) {                                                                  \
-        if (result == FILE_NOT_FOUND)                                           \
-            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
-                   TEXT_RESET TEXT_WRONG " does not exist\n", path);            \
-        else if (result == NOT_A_DIRECTORY)                                     \
-            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
-                   TEXT_RESET TEXT_WRONG " is not a directory\n", path);        \
-        else if (result == NOT_A_FILE)                                          \
-            printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""               \
-                   TEXT_RESET TEXT_WRONG " is not a file\n", path);             \
-        else if (result != OK)                                                  \
-            TEST_ABORT("Error while checking the path");                        \
-    }                                                                           \
-    if (result == OK) {                                                         \
-        score++;                                                                \
-        if (ext) printf(TEXT_CORRECT "       ✓ Path " TEXT_BOLD "\"%s\""        \
-                        TEXT_RESET TEXT_CORRECT " exists\n" TEXT_RESET, path);  \
-    } }
-
+/**
+ * Print the chain of links starting at the given block
+ */
 void print_fat_links(FatFs *fs, int bn) {
     while (bn != FAT_EOF) {
         if (bitmap_get(fs, bn) == 0)
@@ -177,12 +104,148 @@ void print_fat_links(FatFs *fs, int bn) {
     }
     printf("EOF\n");
 }
-
 #define PRINT_FAT_LINKS(block_number) { \
-    if (ext) {                                                   \
+    if (ext) {                                      \
         printf("       FAT chain" TEXT_RESET ": "); \
         print_fat_links(fs, block_number); } }
-    
+
+
+
+/**
+ * Testing functions and defines
+ */
+// Pipeline
+#define TEST(n, c) \
+    static const int test_count_##n = (c); \
+    int test_##n(int ext) {                \
+        int score = 0;                     \
+        int test_number = 0;
+
+#define INIT_TEMP_FS(fs, size, blocks) {\
+    if (fat_init(TEMP_FILE, size, blocks) != OK) TEST_ABORT("Could not initialize temp FS");\
+    if (fat_open(&fs, TEMP_FILE) != OK) TEST_ABORT("Could not open temp FS"); }
+
+#define INIT_FILE(path, mode) {\
+    if (file_open(&file, path, mode "+") != OK) TEST_ABORT("Could not open file");\
+    get_file_blocknum(fs, path, DIR_ENTRY_BITS_FILE, &block_number); }
+
+#define TEST_TITLE(text) \
+    if (ext) printf(TEXT_BOLD "   %2d) " TEXT_RESET TEXT_UNDERLINE text TEXT_RESET "\n", ++test_number)
+
+
+#define OK_MESSAGE(text) { if (ext) puts("       " TEXT_CORRECT "✓ " text TEXT_RESET); score++; }
+#define KO_MESSAGE(text) { if (ext) puts("       " TEXT_WRONG "✘ " text TEXT_RESET); }
+#define TEST_ABORT(text) { KO_MESSAGE(text); goto cleanup; }
+
+#define END return score; }
+
+// Test whether two results match and print a human-readable message
+int _test_result(FatResult result, FatResult expected, int ext) {
+    if (result == expected) {
+        if (ext) printf("       " TEXT_CORRECT "✓ Got " TEXT_BOLD "[%s] (%d)"
+                        TEXT_RESET TEXT_CORRECT " as expected\n" TEXT_RESET,
+                        fat_result_string(result), result);
+        return 1;
+    }
+
+    if (ext) 
+        printf("       " TEXT_WRONG "✘ Got " TEXT_BOLD "[%s] (%d)"
+                TEXT_RESET TEXT_WRONG " but expected " TEXT_BOLD "[%s] (%d)\n" TEXT_RESET,
+                fat_result_string(result), result,
+                fat_result_string(expected), expected);
+    return 0;
+}
+#define TEST_RESULT(got, expected) score += _test_result(got, expected, ext)
+
+// Test whether two strings match and print a human-readable message
+int _test_string(const char *got, const char *expected, int ext) {
+    if (strcmp(got, expected) == 0) {
+        if (ext) 
+            printf("       " TEXT_CORRECT "✓ Got " TEXT_BOLD "\"%s\"" TEXT_RESET
+                    TEXT_CORRECT " as expected\n" TEXT_RESET, got);
+        return 1;
+    }
+    if (ext) 
+        printf("       " TEXT_WRONG "✘ Got " TEXT_BOLD "\"%s\"" TEXT_RESET
+                TEXT_WRONG " but expected " TEXT_BOLD "\"%s\"" TEXT_RESET "\n",
+                got, expected);
+    return 0;
+}
+#define COMPARE_STRINGS(got, expected) score += _test_string(got, expected, ext)
+
+// Test whether a file exists and print a human-readable message
+int _test_exists(FatFs *fs, const char *path, int ext, DirEntryType type, int *block_number) {
+    FatResult result = get_file_blocknum(fs, path, type, block_number);
+    if (result == FILE_NOT_FOUND) {
+        if (ext) printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""
+                        TEXT_RESET TEXT_WRONG " does not exist\n", path);
+    }
+    else if (result == NOT_A_DIRECTORY) {
+        if (ext) printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""
+                        TEXT_RESET TEXT_WRONG " is not a directory\n", path);
+    }
+    else if (result == NOT_A_FILE) {
+        if (ext) printf(TEXT_WRONG "       ✘ Path " TEXT_BOLD "\"%s\""
+                        TEXT_RESET TEXT_WRONG " is not a file\n", path);
+    }
+    else if (result != OK) {
+        if (ext) KO_MESSAGE("Error while checking the path");
+        return -1;
+    } else {
+        if (ext) printf(TEXT_CORRECT "       ✓ Path " TEXT_BOLD "\"%s\""
+                        TEXT_RESET TEXT_CORRECT " exists\n" TEXT_RESET, path);
+        return 1;
+    }
+
+    return 0;
+}
+#define TEST_EXISTS(path, type, block_number_ptr) { \
+    int result = _test_exists(fs, path, ext, type, block_number_ptr); \
+    if (result == -1) goto cleanup; else score += result; }
+
+void print_int_result(int result) {
+    if (result <= 0) printf("[%s] [%d]", fat_result_string(result), result);
+    else printf("%d bytes", result);
+}
+
+// Test results but may be a byte number if positive
+int _test_int_result(int result, int expected, int ext) {
+    if (result != expected) {
+        if (ext) {
+            printf("       " TEXT_WRONG "✘ Got " TEXT_BOLD);
+            print_int_result(result);
+            printf(TEXT_RESET TEXT_WRONG " but expected " TEXT_BOLD);
+            print_int_result(expected);
+            printf(TEXT_RESET "\n");
+        }
+        return 0;
+    }
+
+    if (ext) {
+        printf("       " TEXT_CORRECT "✓ Got " TEXT_BOLD);
+        print_int_result(result);
+        printf(" as expected" TEXT_RESET "\n");
+    }
+
+    return 1;
+}
+#define TEST_INT_RESULT(got, expected) score += _test_int_result(got, expected, ext)
+
+// Test whether two ints match and print a human-readable message
+int _test_int(int got, int expected, const char *name, int ext) {
+    if (got == expected) {
+        if (ext) printf("       " TEXT_CORRECT "✓ Got %s " TEXT_BOLD "%d"
+                        TEXT_RESET TEXT_CORRECT " as expected\n" TEXT_RESET, name, got);
+        return 1;
+    }
+
+    if (ext) 
+        printf("       " TEXT_WRONG "✘ Got %s " TEXT_BOLD "%d"
+                TEXT_RESET TEXT_WRONG " but expected " TEXT_BOLD "%d" TEXT_RESET "\n",
+                name, got, expected);
+    return 0;
+}
+#define TEST_INT(name, got, expected) score += _test_int(got, expected, name, ext)
 
 
 /**
@@ -407,7 +470,7 @@ TEST(file_erase, 13) {
 
     TEST_TITLE("Erasing /file");
     file_create(fs, "/file");
-    file_exists(fs, "/file", DIR_ENTRY_FILE, &block_number);
+    get_file_blocknum(fs, "/file", DIR_ENTRY_FILE, &block_number);
     PRINT_FAT_LINKS(block_number);
     TEST_RESULT(file_erase(fs, "/file"), OK);
     PRINT_FAT_LINKS(block_number);
@@ -420,7 +483,7 @@ TEST(file_erase, 13) {
     TEST_TITLE("Erasing a file inside a directory: /dir/file");
     dir_create(fs, "/dir");
     file_create(fs, "/dir/file");
-    file_exists(fs, "/dir/file", DIR_ENTRY_FILE, &block_number);
+    get_file_blocknum(fs, "/dir/file", DIR_ENTRY_FILE, &block_number);
     PRINT_FAT_LINKS(block_number);
     TEST_RESULT(file_erase(fs, "/dir/file"), OK);
     PRINT_FAT_LINKS(block_number);
@@ -471,7 +534,7 @@ TEST(dir_erase, 21) {
     TEST_TITLE("Erasing empty directory: /dir");
     int dir_block;
     dir_create(fs, "/dir");
-    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    get_file_blocknum(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
     PRINT_FAT_LINKS(dir_block);
     TEST_RESULT(dir_erase(fs, "/dir"), OK);
     PRINT_FAT_LINKS(dir_block);
@@ -483,11 +546,11 @@ TEST(dir_erase, 21) {
     int file1_block, file2_block;
     TEST_TITLE("Erasing a directory with files: /dir");
     dir_create(fs, "/dir");
-    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    get_file_blocknum(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
     file_create(fs, "/dir/file1");
-    file_exists(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
+    get_file_blocknum(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
     file_create(fs, "/dir/file2");
-    file_exists(fs, "/dir/file2", DIR_ENTRY_FILE, &file2_block);
+    get_file_blocknum(fs, "/dir/file2", DIR_ENTRY_FILE, &file2_block);
     int next = fat_get_next_block(fs, dir_block);
     PRINT_FAT_LINKS(dir_block);
     TEST_RESULT(dir_erase(fs, "/dir"), OK);
@@ -515,13 +578,13 @@ TEST(dir_erase, 21) {
     // Erasing a directory with subdirectories
     TEST_TITLE("Erasing a directory with subdirectories: /dir");
     dir_create(fs, "/dir");
-    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
+    get_file_blocknum(fs, "/dir", DIR_ENTRY_DIRECTORY, &dir_block);
     file_create(fs, "/dir/file1");
-    file_exists(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
+    get_file_blocknum(fs, "/dir/file1", DIR_ENTRY_FILE, &file1_block);
     dir_create(fs, "/dir/subdir");
-    file_exists(fs, "/dir/subdir", DIR_ENTRY_DIRECTORY, &subdir_block);
+    get_file_blocknum(fs, "/dir/subdir", DIR_ENTRY_DIRECTORY, &subdir_block);
     file_create(fs, "/dir/subdir/file2");
-    file_exists(fs, "/dir/subdir/file2", DIR_ENTRY_FILE, &file2_block);
+    get_file_blocknum(fs, "/dir/subdir/file2", DIR_ENTRY_FILE, &file2_block);
     next = fat_get_next_block(fs, dir_block);
     PRINT_FAT_LINKS(dir_block);
     PRINT_FAT_LINKS(subdir_block);
@@ -592,7 +655,7 @@ TEST(dir_open, 12) {
     TEST_TITLE("Opening another directory: /dir");
     dir_create(fs, "/dir");
     TEST_RESULT(dir_open(fs, "/dir", &dir), OK);
-    file_exists(fs, "/dir", DIR_ENTRY_DIRECTORY, &block_number);
+    get_file_blocknum(fs, "/dir", DIR_ENTRY_DIRECTORY, &block_number);
     if (dir->block_number != block_number) {
         KO_MESSAGE("The block number was not correctly initialized");
     } else OK_MESSAGE("The block number was correctly initialized");
@@ -667,6 +730,103 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(file_open, 8) {
+    FatFs *fs;
+    FileHandle *file = NULL;
+    INIT_TEMP_FS(fs, 64, 32);
+
+    // Create a file
+    file_create(fs, "/file");
+
+    TEST_TITLE("Opening a file with no flags");
+    TEST_RESULT(file_open(fs, "/file", &file, ""), FILE_OPEN_INVALID_ARGUMENT);
+
+    TEST_TITLE("Opening a file with the READ flag");
+    TEST_RESULT(file_open(fs, "/file", &file, "r"), OK);
+    file_close(file);
+
+    TEST_TITLE("Opening a file with the WRITE flag");
+    TEST_RESULT(file_open(fs, "/file", &file, "w"), OK);
+    file_close(file);
+
+    TEST_TITLE("Opening a file with the APPEND flag");
+    TEST_RESULT(file_open(fs, "/file", &file, "a"), OK);
+    file_close(file);
+
+    TEST_TITLE("Open with + and the file exists");
+    TEST_RESULT(file_open(fs, "/file", &file, "w+"), OK);
+    file_close(file);
+
+    TEST_TITLE("Opening without + but the file does not exist");
+    TEST_RESULT(file_open(fs, "/test", &file, "w"), FILE_NOT_FOUND);
+
+    TEST_TITLE("Open with + but the file does not exist");
+    TEST_RESULT(file_open(fs, "/test", &file, "w+"), OK);
+    file_close(file);
+
+    dir_create(fs, "/dir");
+    TEST_TITLE("Opening a directory with file_open");
+    TEST_RESULT(file_open(fs, "/dir", &file, "r"), NOT_A_FILE);
+
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
+// @author Cicim
+TEST(file_write, 1) {
+    FatFs *fs;
+    FileHandle *file = NULL;
+    int block_number;
+    const char *str = "123456789ABCDEFGH012345678abcdefgh";
+
+    // Create a file and open it
+    INIT_TEMP_FS(fs, 32, 32);
+    file_create(fs, "/file");
+    get_file_blocknum(fs, "/file", DIR_ENTRY_FILE, &block_number);
+    file_open(fs, "/file", &file, "w");
+
+    TEST_TITLE("Writing 1 byte at the start of an empty file");
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT_RESULT(file_write(file, str, 1), 1);
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT("next block", fat_get_next_block(fs, 1), FAT_EOF);
+    TEST_INT("size", file->fh->size, 1);
+
+    TEST_TITLE("Adding 10 more bytes to the same file");
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT_RESULT(file_write(file, str + 1, 10), 10);
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT("next block", fat_get_next_block(fs, 1), FAT_EOF);
+    TEST_INT("size", file->fh->size, 11);
+    PRINT_FAT_LINKS(block_number);
+
+    TEST_TITLE("If the size is 16 (block size - file header size) it should not allocate another block");
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT_RESULT(file_write(file, str + 11, 5), 5);
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT("next block", fat_get_next_block(fs, 1), FAT_EOF);
+    TEST_INT("size", file->fh->size, 16);
+    file_erase(fs, "/file");
+    file_close(file);
+
+    TEST_TITLE("Write 32 bytes to a file that is empty");
+    file_open(fs, "/file2", &file, "a+");
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT_RESULT(file_write(file, str, 32), 32);
+    PRINT_FAT_LINKS(block_number);
+    TEST_INT("next block", fat_get_next_block(fs, 1), 4);
+    TEST_INT("size", file->fh->size, 32);
+
+
+cleanup:
+    file_close(file);
+
+    END
+}
+
 
 /**
  * Test selector
@@ -683,6 +843,8 @@ const struct TestData tests[] = {
     TEST_ENTRY(file_create),
     TEST_ENTRY(file_erase),
     TEST_ENTRY(dir_erase),
+    TEST_ENTRY(file_open),
+    TEST_ENTRY(file_write),
 };
 
 int main(int argc, char **argv) {
