@@ -62,26 +62,36 @@ FatResult cmd_touch(FatFs *fs, const char *path) {
  * LS command argument parsing
  * @author Claziero
  */
-#define LS 0
-#define LS_A 1
-#define LS_L 2
-#define LS_AL 3
-#define LS_ARGUMENT_UNKNOWN -1
-#define LS_ARGUMENT_PATH -2
+typedef struct ls_args {
+    char argument_all:1;
+    char argument_long:1;
+    char argument_unknown:1;
+    char argument_path:1;
+} ls_args;
 
-int ls_parse_argument(char *arg) {
-    if (arg == NULL)
-        return LS;
-    else if (strcmp(arg, "--all") == 0 || strcmp(arg, "-a") == 0)
-        return LS_A;
-    else if (strcmp(arg, "-l") == 0)
-        return LS_L;
-    else if (strcmp(arg, "-al") == 0 || strcmp(arg, "-la") == 0)
-        return LS_AL;
-    else if (arg[0] == '-')
-        return LS_ARGUMENT_UNKNOWN;
-    else
-        return LS_ARGUMENT_PATH;
+void ls_parse_argument(char *arg, ls_args *args) {
+    if (arg == NULL) 
+        return;
+    else if (strcmp(arg, "--all") == 0 || strcmp(arg, "-a") == 0) {
+        args->argument_all = 1;
+        return;
+    }
+    else if (strcmp(arg, "-l") == 0) {
+        args->argument_long = 1;
+        return;
+    }
+    else if (strcmp(arg, "-al") == 0 || strcmp(arg, "-la") == 0) {
+        args->argument_all = args->argument_long = 1;
+        return;
+    }
+    else if (arg[0] == '-') {
+        args->argument_unknown = 1;
+        return;
+    }
+    else {
+        args->argument_path = 1;
+        return;
+    }
 }
 
 /**
@@ -92,48 +102,26 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     if (command_arguments == NULL)
         return INVALID_PATH;
 
-    // Open the directory
     DirHandle *dir = NULL;
     DirEntry entry;
     FatResult res;
+    ls_args args = {0};
+    char **arg = command_arguments;
 
     // Look for all arguments
-    int i = 0;
-    int path = -1;
-    int list_all = FALSE;
-    int list_long = FALSE;
-    int list_here = FALSE;
-    int argument = ls_parse_argument(command_arguments[i]);
-    while (1) {
-        switch (argument) {
-            case LS:
-                list_here = TRUE;
-                break;
-            case LS_A:
-                list_all = TRUE;
-                break;
-            case LS_L:
-                list_long = TRUE;
-                break;
-            case LS_AL:
-                list_all = list_long = TRUE;
-                break;
-            case LS_ARGUMENT_PATH:
-                path = i;
-                break;
-            case LS_ARGUMENT_UNKNOWN:
-                printf("Unknown argument: %s\n", command_arguments[i]);
-                return LS_INVALID_ARGUMENT;
-        }
-        if (++i == MAX_COMMAND_ARGUMENTS || list_here)
-            break;
-        argument = ls_parse_argument(command_arguments[i]);
+    int i = 0, path = -1;
+    while (*arg != NULL) {
+        ls_parse_argument(*arg, &args);
+        
+        if (args.argument_unknown) return LS_INVALID_ARGUMENT;
+        if (args.argument_path) path = i;
+
+        i++;
+        arg++;
     }
 
-    if (path != -1) list_here = FALSE;
-
     // Open the correct directory
-    if (list_here) {
+    if (!args.argument_path) {
         res = dir_open(fs, fs->current_directory, &dir);
         if (res != OK)
             return res;
@@ -145,32 +133,32 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
 
     // If "-a" is used, list also "." and ".." directories
-    if (list_all) {
+    if (args.argument_all) {
         printf(TEXT_BLUE ".   " TEXT_RESET);
-        if (list_long) printf("\n");
+        if (args.argument_long) printf("\n");
         
         printf(TEXT_BLUE "..   " TEXT_RESET);
-        if (list_long) printf("\n");
+        if (args.argument_long) printf("\n");
     }
 
     // List the contents
     while ((res = dir_list(dir, &entry)) == OK) {
         if (entry.type == DIR_ENTRY_DIRECTORY) {
             // Condition on hidden files
-            if (!list_all && entry.name[0] == '.') continue;
+            if (!args.argument_all && entry.name[0] == '.') continue;
 
             printf(TEXT_BLUE "%s   " TEXT_RESET, entry.name);
-            if (list_long) printf("\n");
+            if (args.argument_long) printf("\n");
         }
         else {
             // Condition on hidden files
-            if (!list_all && entry.name[0] == '.') continue;
+            if (!args.argument_all && entry.name[0] == '.') continue;
 
             printf("%s   ", entry.name);
-            if (list_long) printf("\n");
+            if (args.argument_long) printf("\n");
         }
     }
-    if (!list_long) printf("\n");
+    if (!args.argument_long) printf("\n");
 
     // Close the directory
     res = dir_close(dir);
