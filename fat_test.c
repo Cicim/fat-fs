@@ -504,13 +504,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    char buffer[300] = "";
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Overwrite the data
     printf("TEST 2: Trying to overwrite the data in the file...\n");
@@ -522,13 +520,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Write more data to the file
     printf("TEST 3: Trying to write more data to the file...\n");
@@ -539,13 +535,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Reopen the file in append mode
     printf("\nClosing the file...\n");
@@ -564,13 +558,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -590,13 +582,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -621,13 +611,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -647,13 +635,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -673,13 +659,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -709,41 +693,30 @@ void test_file_write() {
     printf("Opening the file /dir1/a.txt...\n");
     res = file_open(fs, "/dir1/a.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 300);
-    res = file_read(file, buffer, 300);
-    printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("Opening the file /dir1/b.txt...\n");
     res = file_open(fs, "/dir1/b.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 300);
-    res = file_read(file, buffer, 300);
-    printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("Opening the file /dir2/c.txt...\n");
     res = file_open(fs, "/dir2/c.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 300);
-    res = file_read(file, buffer, 300);
     printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("Opening the file /dir2/e.txt...\n");
     res = file_open(fs, "/dir2/e.txt", &file, "r");
     printf("\tFatResult = %d\n", res);
-    memset(buffer, 0, 300);
-    res = file_read(file, buffer, 300);
-    printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("Opening the file /dir2/h.txt in \"w+\" mode...\n");
@@ -757,13 +730,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("\nOpening the file /dir2/l.txt in \"a+\" mode...\n");
@@ -777,13 +748,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     printf("\nOpening the file /dir2/r.txt in \"w+\" mode...\n");
@@ -797,13 +766,11 @@ void test_file_write() {
     printf("\tWritten bytes = %d\n", res);
 
     // Read the data
-    memset(buffer, 0, 300);
     printf("\tTrying to read the data from the file...\n");
     res = file_seek(file, 0, FILE_SEEK_SET);
-    res = file_read(file, buffer, 300);
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
-    file_print(file, buffer);
+    file_print(file);
     res = file_close(file);
 
     fat_close(fs);

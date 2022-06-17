@@ -141,7 +141,7 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode);
 FatResult file_close(FileHandle *file);
 
 // Prints the file contents to stdout
-FatResult file_print(FileHandle *file, char *buffer);
+FatResult file_print(FileHandle *file);
 
 // Changes file dimension
 FatResult change_file_dimension(FileHandle *file, int size);

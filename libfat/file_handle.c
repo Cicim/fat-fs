@@ -138,11 +138,23 @@ FatResult file_close(FileHandle *file) {
 
 /** 
  * Prints the file contents to stdout
- * @author Claziero
+ * @author Claziero, Cicim
  */
-FatResult file_print(FileHandle *file, char *buffer) {
-    for (int i = 0; i < file->fh->size; i++)
-        printf("%c", buffer[i]);
+FatResult file_print(FileHandle *file) {
+    char buffer[256];
+
+    int i = 0;
+    while (i < file->fh->size) {
+        FatResult res = file_read(file, buffer, 256);
+        if (res == 0)
+            break;
+        else if (res < 0)
+            return res;
+
+        for (int j = 0; j < res; j++)
+            printf("%c", buffer[j]);
+        i += res;
+    }
 
     printf("\n");
     return OK;

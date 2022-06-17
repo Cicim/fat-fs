@@ -59,6 +59,117 @@ FatResult cmd_touch(FatFs *fs, const char *path) {
 }
 
 /**
+ * Move a file
+ * @author Cicim
+ */
+FatResult cmd_mv(FatFs *fs, const char *source_path, const char *dest_path) {
+    if (source_path == NULL || dest_path == NULL)
+        return INVALID_PATH;
+
+    return file_move(fs, source_path, dest_path);
+}
+
+/**
+ * Print the contents of the file to stdout
+ * @author Cicim
+ */
+FatResult cmd_cat(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    FileHandle *file;
+    FatResult res = file_open(fs, path, &file, "r");
+    if (res != OK)
+        return res;
+
+    res = file_print(file);
+    file_close(file);
+    return res;
+}
+
+/**
+ * Remove a file
+ * @author Cicim
+ */
+FatResult cmd_rm(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    return file_erase(fs, path);
+}
+
+/**
+ * Remove a directory
+ * @author Cicim
+ */
+FatResult cmd_rmdir(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    return dir_erase(fs, path);
+}
+
+/**
+ * Print the number of free blocks in the file system
+ * @author Cicim
+ */
+FatResult cmd_free(FatFs *fs) {
+    int free_blocks = fs->header->free_blocks;
+    int free_bytes = free_blocks * fs->header->block_size;
+
+    printf("%d free blocks (%d bytes)\n", free_blocks, free_bytes);
+
+    return OK;
+}
+
+/**
+ * Copy a file from the external fs to the FAT FS
+ * @author Cicim
+ */
+FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path) {
+    if (external_path == NULL || internal_path == NULL)
+        return INVALID_PATH;
+    
+    // Open the external file
+    FILE *external_file = fopen(external_path, "r");
+    if (external_file == NULL) {
+        printf("Could not open external file: %s\n", external_path);
+        return OK;
+    }
+    // Get its size
+    fseek(external_file, 0, SEEK_END);
+    int size = ftell(external_file);
+    // If the file is too large, exit
+    if (size > (fs->header->free_blocks - 2) * fs->header->block_size) {
+        printf("File does not fit in this file system\n");
+        return OK;
+    }
+    // Seek to the beginning of the file
+    fseek(external_file, 0, SEEK_SET);
+
+    // Open the file in write mode in the internal fs
+    FileHandle *file;
+    FatResult res = file_open(fs, internal_path, &file, "w+");
+    if (res != OK)
+        return res;
+
+    // Write the file
+    char buffer[128];
+    int read_bytes = 0;
+    while ((read_bytes = fread(buffer, 1, 128, external_file)) > 0) {
+        res = file_write(file, buffer, read_bytes);
+        if (res < 0)
+            return res;
+    }
+
+    // Close the files
+    file_close(file);
+    fclose(external_file);
+
+    return OK;
+}
+
+/**
  * LS command argument parsing
  * @author Claziero
  */
@@ -234,6 +345,18 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_touch(fs, command[1]);
     else if (strcmp(cmd_name, "ls") == 0)
         res = cmd_ls(fs, command + 1);
+    else if (strcmp(cmd_name, "mv") == 0)
+        res = cmd_mv(fs, command[1], command[2]);
+    else if (strcmp(cmd_name, "cat") == 0)
+        res = cmd_cat(fs, command[1]);
+    else if (strcmp(cmd_name, "rm") == 0)
+        res = cmd_rm(fs, command[1]);
+    else if (strcmp(cmd_name, "rmdir") == 0)
+        res = cmd_rmdir(fs, command[1]);
+    else if (strcmp(cmd_name, "free") == 0)
+        res = cmd_free(fs);
+    else if (strcmp(cmd_name, "ec") == 0)
+        res = cmd_ec(fs, command[1], command[2]);
     else
         printf("Unknown command: %s\n", cmd_name);
 
