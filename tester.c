@@ -262,9 +262,7 @@ TEST(fat_init, 10) {
         TEST_ABORT("The file was not created");
     OK_MESSAGE("The file was created");
     fseek(file, 0, SEEK_END);
-    if (ftell(file) != 1156 + sizeof(FatHeader)) 
-        KO_MESSAGE("Incorrect file size");
-    OK_MESSAGE("The file has the correct size");
+    TEST_INT("file size", ftell(file), 1156 + sizeof(FatHeader));
     fclose(file);
 
     TEST_TITLE("Trying to create a buffer in /std/null");
@@ -291,7 +289,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(fat_open, 5) {
+TEST(fat_open, 6) {
     FatFs *fs;
 
     remove(TEMP_FILE);
@@ -312,6 +310,12 @@ TEST(fat_open, 5) {
     TEST_RESULT(fat_open(&fs, "/std/null"), FAT_BUFFER_ERROR);
     TEST_TITLE("Trying to open a non-existing file");
     TEST_RESULT(fat_open(&fs, "non-existing-file"), FAT_BUFFER_ERROR);
+
+    // Errors with buffer
+    fopen(TEMP_FILE, "w");
+    fwrite("Hello world", 1, 12, fopen(TEMP_FILE, "r"));
+    TEST_TITLE("Trying to open a buffer with the wrong magic");
+    TEST_RESULT(fat_open(&fs, TEMP_FILE), FAT_OPEN_ERROR);
 
 cleanup:
     remove(TEMP_FILE);
@@ -439,9 +443,7 @@ TEST(file_create, 7) {
     TEST_RESULT(file_create(fs, "/file"), OK);
     TEST_EXISTS("/file", DIR_ENTRY_FILE, &block_number);
     FileHeader *header = (FileHeader *)(fs->blocks_ptr + block_number * fs->header->block_size);
-    if (header->date_created != 0 && header->date_modified != 0 && header->size == 0) {
-        OK_MESSAGE("The header was initialized");
-    } else KO_MESSAGE("The header was not initialized");
+    TEST_INT("size", header->size, 0);
 
     // Try to create a file in a non-existing directory
     TEST_TITLE("Creating a file in a non-existing directory /test/file");
@@ -776,7 +778,7 @@ cleanup:
 }
 
 // @author Cicim
-TEST(file_write, 1) {
+TEST(file_write, 12) {
     FatFs *fs;
     FileHandle *file = NULL;
     int block_number;

@@ -4,6 +4,8 @@
  */
 #include "fat.h"
 
+#define FAT_MAGIC 0xFA7F50C0
+
 
 /**
  * Bitmap

@@ -48,12 +48,10 @@ typedef enum DirEntryType {
  */
 // Head bytes of the buffer
 typedef struct FatHeader {
+    unsigned int magic;
     unsigned int block_size;
     unsigned int blocks_count;
-
-    unsigned int bitmap_offset;
-    unsigned int fat_offset;
-    unsigned int blocks_offset;
+    unsigned int free_blocks;
 } FatHeader;
 
 // Handler for the file system

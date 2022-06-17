@@ -26,17 +26,18 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
 
     // Create and initialize the FAT header
     FatHeader header;
+    header.magic = FAT_MAGIC;
     header.block_size = block_size;
     header.blocks_count = blocks_count;
-
+    header.free_blocks = blocks_count - 1;
+    
     // The bitmap begins after the header
-    header.bitmap_offset = sizeof(FatHeader);
-    
+    int bitmap_offset = sizeof(FatHeader);
     // The FAT table begins after the bitmap
-    header.fat_offset = header.bitmap_offset + (blocks_count / 8);
-    
+    int fat_offset = bitmap_offset + (blocks_count / 8);
     // The blocks begin after the FAT
-    header.blocks_offset = header.fat_offset + (blocks_count * sizeof(int));
+    int blocks_offset = fat_offset + (blocks_count * sizeof(int));
+
 
     // Open the FAT file
     int fat_fd = open(fat_path, O_RDWR | O_CREAT | O_TRUNC, 0660);
@@ -60,18 +61,18 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
     }
 
     // Initialize the bitmap with zeros
-    if (ftruncate(fat_fd, header.bitmap_offset + (blocks_count / 8)) != 0)
+    if (ftruncate(fat_fd, bitmap_offset + (blocks_count / 8)) != 0)
         return FAT_BUFFER_ERROR;
 
     // Set the first bit to 1 (always occupied by the root directory)
-    if (lseek(fat_fd, header.bitmap_offset, SEEK_SET) == -1)
+    if (lseek(fat_fd, bitmap_offset, SEEK_SET) == -1)
         return FAT_BUFFER_ERROR;
     if (write(fat_fd, "\x01", 1) != 1)
         return FAT_BUFFER_ERROR;
 
     // Move the file pointer to the beginning of the FAT table
     char ff[4] = "\xff\xff\xff\xff";
-    if (lseek(fat_fd, header.fat_offset, SEEK_SET) == -1)
+    if (lseek(fat_fd, fat_offset, SEEK_SET) == -1)
         return FAT_BUFFER_ERROR;
     
     // Initialize the FAT table with -1 (empty table)
@@ -93,7 +94,7 @@ FatResult fat_init(const char *fat_path, int block_size, int blocks_count) {
     }
 
     // Initialize the blocks with zeros
-    if (ftruncate(fat_fd, header.blocks_offset + (blocks_count * block_size)) != 0)
+    if (ftruncate(fat_fd, blocks_offset + (blocks_count * block_size)) != 0)
         return FAT_BUFFER_ERROR;
 
     // Close the FAT file
@@ -127,6 +128,13 @@ FatResult fat_open(FatFs **fs, char *fat_path) {
         return FAT_OPEN_ERROR;
     }
 
+    // If the magic is wrong
+    if (*(int *)fat_buffer != FAT_MAGIC) {
+        munmap(fat_buffer, file_size);
+        close(fd);
+        return FAT_OPEN_ERROR;
+    }
+
     // Init the FatFs struct
     *fs = malloc(sizeof(FatFs));
     if (*fs == NULL) {
@@ -140,10 +148,14 @@ FatResult fat_open(FatFs **fs, char *fat_path) {
     (*fs)->current_directory[0] = '/';
     (*fs)->current_directory[1] = '\0';
 
-    // Get the pointers to the bitmap, FAT and blocks
-    (*fs)->bitmap_ptr = fat_buffer + (*fs)->header->bitmap_offset;
-    (*fs)->fat_ptr = fat_buffer + (*fs)->header->fat_offset;
-    (*fs)->blocks_ptr = fat_buffer + (*fs)->header->blocks_offset;
+    int blocks_count = (*fs)->header->blocks_count;
+
+    // The bitmap begins after the header
+    (*fs)->bitmap_ptr = fat_buffer + sizeof(FatHeader);
+    // The FAT table begins after the bitmap
+    (*fs)->fat_ptr = (*fs)->bitmap_ptr + (blocks_count / 8);
+    // The blocks begin after the FAT
+    (*fs)->blocks_ptr = (*fs)->fat_ptr + (blocks_count * sizeof(int));
 
     return OK;
 }

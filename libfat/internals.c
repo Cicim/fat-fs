@@ -27,6 +27,9 @@ void bitmap_set(FatFs *fs, int block_number, int value) {
     int byte_index = block_number / 8;
     int bit_index = block_number % 8;
 
+    char old_value = (fs->bitmap_ptr[byte_index] >> bit_index) & 1;
+    fs->header->free_blocks -= (value - old_value);
+
     // Set the bit
     if (value)
         fs->bitmap_ptr[byte_index] |= (1 << bit_index);
