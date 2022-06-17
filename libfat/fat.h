@@ -68,12 +68,21 @@ typedef struct FatFs {
     char *blocks_ptr;
 } FatFs;
 
+// Time struct
+typedef struct DateTime {
+    unsigned short sec:6;
+    unsigned short min:6;
+    unsigned short month:4;
+    unsigned short hour:6;
+    unsigned short day:5;
+    unsigned short year;
+} DateTime;
+
 // File informations
 typedef struct FileHeader {
     unsigned int size;
-    date_t date_created;
-    date_t date_modified;
-    unsigned int _reserved;
+    DateTime date_created;
+    DateTime date_modified;
 } FileHeader;
 
 // Data needed by operations on a file

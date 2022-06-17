@@ -239,6 +239,26 @@ void ls_parse_argument(char *arg, ls_args *args) {
     } else args->argument_path = TRUE;
 }
 
+/** 
+ * Format dates
+ * @author Claziero
+ */
+void format_date(DateTime *date, char* buffer) {
+    int pos = 0;
+    
+    if (date->day < 10) pos += sprintf(buffer, "0");
+    pos += sprintf(&buffer[pos], "%d/", date->day);
+    if (date->month < 10) pos += sprintf(&buffer[pos], "0");
+    pos += sprintf(&buffer[pos], "%d/", date->month);
+    pos += sprintf(&buffer[pos], "%d@", date->year);
+    if (date->hour < 10) pos += sprintf(&buffer[pos], "0");
+    pos += sprintf(&buffer[pos], "%d:", date->hour);
+    if (date->min < 10) pos += sprintf(&buffer[pos], "0");
+    pos += sprintf(&buffer[pos], "%d:", date->min);
+    if (date->sec < 10) pos += sprintf(&buffer[pos], "0");
+    sprintf(&buffer[pos], "%d", date->sec);
+}
+
 /**
  * List directory contents
  * @author Claziero
@@ -276,32 +296,130 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         if (res != OK)
             return res;
     }
+    
+    // Loop for directory stats and alphabetic sorting
+    typedef struct LsList {
+        struct LsList *next;
+        char name[MAX_FILENAME_LENGTH];
+        char type;
+        char date_created[20];
+        char date_modified[20];
+        int size;
+    } LsList;
+
+    int max_size = 10, spaces = 1;
+    LsList *head = NULL;
+    while ((res = dir_list(dir, &entry)) == OK) {
+        LsList *elem = malloc(sizeof(LsList));
+
+        if (entry.type == DIR_ENTRY_DIRECTORY) {
+            elem->size = 0;
+            strcpy(elem->date_created, "--");
+            strcpy(elem->date_modified, "--");
+        } 
+        else {
+            FileHeader *fh = (FileHeader *) 
+                (fs->blocks_ptr + entry.first_block * fs->header->block_size);
+        
+            // Get the max size of the elements
+            while (fh->size > max_size) {
+                max_size *= 10;
+                spaces++;
+            }
+
+            format_date(&fh->date_created, elem->date_created);
+            format_date(&fh->date_modified, elem->date_modified);
+            elem->size = fh->size;
+        }
+
+        strcpy(elem->name, entry.name);
+        elem->type = entry.type;
+        elem->next = NULL;
+
+        // Order items by name
+        LsList *tmp = head;
+
+        // If "elem" is smaller than the first element
+        if (head == NULL || strcmp(elem->name, head->name) < 0) {
+            elem->next = head;
+            head = elem;
+        }
+        // All other elements
+        else {
+            while (tmp->next != NULL && strcmp(tmp->name, elem->name) > 0)
+                tmp = tmp->next;
+
+            elem->next = tmp->next;
+            tmp->next = elem;
+        }
+    }
+
+    if (args.argument_long)
+        printf(TEXT_GREEN "TYPE  SIZE%*s  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
+        spaces - 3, "");
 
     // If "-a" is used, list also "." and ".." directories
     if (args.argument_all) {
-        printf(TEXT_BLUE ".   " TEXT_RESET);
-        if (args.argument_long) printf("\n");
-        
-        printf(TEXT_BLUE "..   " TEXT_RESET);
-        if (args.argument_long) printf("\n");
+        if (args.argument_long) {
+            printf("DIR   ");
+            printf("%*s0  ", spaces, " ");
+            printf("--                   ");
+            printf("--                   ");
+            printf(TEXT_BLUE ".\n" TEXT_RESET);
+
+            printf("DIR   ");
+            printf("%*s0  ", spaces, " ");
+            printf("--                   ");
+            printf("--                   ");
+            printf(TEXT_BLUE "..\n" TEXT_RESET);
+        }
+        else {
+            printf(TEXT_BLUE ".   " TEXT_RESET);
+            printf(TEXT_BLUE "..   " TEXT_RESET);
+        }        
     }
 
     // List the contents
-    while ((res = dir_list(dir, &entry)) == OK) {
-        if (entry.type == DIR_ENTRY_DIRECTORY) {
-            // Condition on hidden files
-            if (!args.argument_all && entry.name[0] == '.') continue;
-
-            printf(TEXT_BLUE "%s   " TEXT_RESET, entry.name);
-            if (args.argument_long) printf("\n");
+    while (head != NULL) {
+        // Condition on hidden files
+        if (!args.argument_all && head->name[0] == '.') {
+            head = head->next;
+            continue;
         }
-        else {
-            // Condition on hidden files
-            if (!args.argument_all && entry.name[0] == '.') continue;
 
-            printf("%s   ", entry.name);
-            if (args.argument_long) printf("\n");
+        if (!args.argument_long) {
+            if (head->type == DIR_ENTRY_DIRECTORY) 
+                printf(TEXT_BLUE "%s   " TEXT_RESET, head->name);
+            else 
+                printf("%s   ", head->name);
+            
+            head = head->next;
+            continue;
         }
+
+        if (args.argument_long) {
+            if (head->type == DIR_ENTRY_DIRECTORY) {
+                printf("DIR   ");
+                printf("%*s0  ", spaces, " ");
+                printf("--                   ");
+                printf("--                   ");
+                printf(TEXT_BLUE "%s\n" TEXT_RESET, head->name);
+            }
+            else {
+                int size = 10, space = 0;
+                while (head->size > size) {
+                    size *= 10;
+                    space++;
+                }
+
+                printf("FILE  ");
+                printf("%*s%d  ", spaces - space, " ", head->size);
+                printf("%s  ", head->date_created); 
+                printf("%s  ", head->date_modified); 
+                printf("%s\n", head->name);
+            }
+        }
+        head = head->next;
     }
     if (!args.argument_long) printf("\n");
 

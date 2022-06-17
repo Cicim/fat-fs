@@ -1,16 +1,17 @@
 /**
  * File creation functions
- * @author Cicim
+ * @authors Cicim, Claziero
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "internals.h"
-
 
 /**
  * Create a file inside a directory
- * @author Cicim
+ * @authors Cicim, Claziero
  */
 FatResult file_create(FatFs *fs, const char *path) {
     FatResult res;
@@ -37,9 +38,27 @@ FatResult file_create(FatFs *fs, const char *path) {
     // Fill the file header
     FileHeader *header = (FileHeader *)(fs->blocks_ptr + entry->first_block * fs->header->block_size);
     header->size = 0;
-    // TODO Use the correct dates
-    header->date_created = 0xCCCCCCCC;
-    header->date_modified = 0x77777777;
+    
+    // Get the date
+    time_t rawtime;
+    struct tm * timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    // Set "date_created" and "date_modified" dates
+    header->date_created.sec = timeinfo->tm_sec;
+    header->date_created.min = timeinfo->tm_min;
+    header->date_created.hour = timeinfo->tm_hour;
+    header->date_created.day = timeinfo->tm_mday;
+    header->date_created.month = timeinfo->tm_mon + 1;
+    header->date_created.year = timeinfo->tm_year + 1900;
+
+    header->date_modified.sec = timeinfo->tm_sec;
+    header->date_modified.min = timeinfo->tm_min;
+    header->date_modified.hour = timeinfo->tm_hour;
+    header->date_modified.day = timeinfo->tm_mday;
+    header->date_modified.month = timeinfo->tm_mon + 1;
+    header->date_modified.year = timeinfo->tm_year + 1900;
 
     return OK;
 }
