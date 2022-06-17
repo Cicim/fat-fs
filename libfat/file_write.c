@@ -139,8 +139,8 @@ int file_write(FileHandle *file, const char *data, int size) {
         else 
             file->block_offset += size_to_write;
         
-        file->file_offset += written_size;
     }
+    file->file_offset += written_size;
 
     // TODO: Update modification time
 

@@ -91,7 +91,7 @@ FatResult file_open(FatFs *fs, const char *path, FileHandle **file, char *mode) 
                 return FILE_NOT_FOUND;
 
             // Else create it
-            res = dir_insert(fs, dir_block, &entry, DIR_ENTRY_FILE, name);
+            res = file_create(fs, path);
             if (res != OK)
                 return res;
             break;
