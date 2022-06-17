@@ -511,7 +511,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Overwrite the data
     printf("TEST 2: Trying to overwrite the data in the file...\n");
@@ -530,7 +529,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Write more data to the file
     printf("TEST 3: Trying to write more data to the file...\n");
@@ -548,7 +546,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Reopen the file in append mode
     printf("\nClosing the file...\n");
@@ -574,7 +571,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -601,7 +597,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -611,7 +606,7 @@ void test_file_write() {
     // Try writing a file that doesn't exist
     printf("\nTrying to open a file that doesn't exist (/dir2/c.txt) in \"w\" mode...\n");
     res = file_open(fs, "/dir2/c.txt", &file, "w");
-    printf("\tFatResult = %d [-9 == FILE_NOT_FOUND]\n\n", res);
+    printf("\tFatResult = %d [-9 == FILE_NOT_FOUND]\n", res);
 
     // Try writing a file that doesn't exist
     printf("\nTrying to open a file that doesn't exist (/dir2/c.txt) in \"w+\" mode...\n");
@@ -633,7 +628,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -660,7 +654,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -687,7 +680,6 @@ void test_file_write() {
     printf("\t\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
 
     // Close the file
     printf("\nClosing the file...\n");
@@ -722,9 +714,7 @@ void test_file_write() {
     printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
     res = file_close(file);
-    printf("\tFatResult = %d\n", res);
 
     printf("Opening the file /dir1/b.txt...\n");
     res = file_open(fs, "/dir1/b.txt", &file, "r");
@@ -734,9 +724,7 @@ void test_file_write() {
     printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
     res = file_close(file);
-    printf("\tFatResult = %d\n", res);
 
     printf("Opening the file /dir2/c.txt...\n");
     res = file_open(fs, "/dir2/c.txt", &file, "r");
@@ -746,9 +734,7 @@ void test_file_write() {
     printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
     res = file_close(file);
-    printf("\tFatResult = %d\n", res);
 
     printf("Opening the file /dir2/e.txt...\n");
     res = file_open(fs, "/dir2/e.txt", &file, "r");
@@ -758,9 +744,67 @@ void test_file_write() {
     printf("\tres of file_read(300): %d\n", res);
     printf("\t\tbuffer: ");
     file_print(file, buffer);
-    printf("\n");
     res = file_close(file);
-    printf("\tFatResult = %d\n", res);
+
+    printf("Opening the file /dir2/h.txt in \"w+\" mode...\n");
+    res = file_open(fs, "/dir2/h.txt", &file, "w+");
+    printf("\tFatResult = %d\n\n", res);
+    
+    // Try to write to the file
+    char data10[64] = "This      string      will      be      64      bytes      long";
+    printf("TEST 10: Trying to write \"%s\" to the file...\n", data10); 
+    res = file_write(file, data10, 64);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 300);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    res = file_close(file);
+
+    printf("\nOpening the file /dir2/l.txt in \"a+\" mode...\n");
+    res = file_open(fs, "/dir2/l.txt", &file, "a+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Try to write to the file
+    char data11[48] = "This string is be 48 bytes long (+16 of header)";
+    printf("TEST 11: Trying to write \"%s\" to the file...\n", data11);
+    res = file_write(file, data11, 48);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 300);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    res = file_close(file);
+
+    printf("\nOpening the file /dir2/r.txt in \"w+\" mode...\n");
+    res = file_open(fs, "/dir2/r.txt", &file, "w+");
+    printf("\tFatResult = %d\n\n", res);
+
+    // Try to write to the file
+    char data12[48] = "This string is be 48 bytes long (+16 of header)";
+    printf("TEST 12: Trying to write \"%s\" to the file...\n", data12);
+    res = file_write(file, data12, 48);
+    printf("\tWritten bytes = %d\n", res);
+
+    // Read the data
+    memset(buffer, 0, 300);
+    printf("\tTrying to read the data from the file...\n");
+    res = file_seek(file, 0, FILE_SEEK_SET);
+    res = file_read(file, buffer, 300);
+    printf("\t\tres of file_read(300): %d\n", res);
+    printf("\t\tbuffer: ");
+    file_print(file, buffer);
+    res = file_close(file);
 
     fat_close(fs);
     printf("************************************************************************************\n\n");

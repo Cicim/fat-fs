@@ -141,8 +141,9 @@ FatResult file_close(FileHandle *file) {
  * @author Claziero
  */
 FatResult file_print(FileHandle *file, char *buffer) {
-    for (int i = 0; i < file->fh->size; i++) {
+    for (int i = 0; i < file->fh->size; i++)
         printf("%c", buffer[i]);
-    }
+
+    printf("\n");
     return OK;
 }

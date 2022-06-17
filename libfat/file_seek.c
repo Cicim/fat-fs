@@ -38,7 +38,7 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
             file->current_block_number = file->initial_block_number;
             if (file->file_offset == file->fh->size && file->block_offset == 0)
                 num_blocks--;
-            while (num_blocks--)
+            while (num_blocks-- > 0)
                 file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
 
             // Set the file offset to the last offset calculated
@@ -59,7 +59,7 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
             // Move the file current block to the last block calculated
             if (file->file_offset == file->fh->size && file->block_offset == 0)
                 num_blocks--;
-            while (num_blocks--)
+            while (num_blocks-- > 0)
                 file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
 
             // Set the file offset to the last offset calculated
@@ -82,7 +82,7 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
 
             if (file->file_offset == file->fh->size && file->block_offset == 0)
                 num_blocks--;
-            while (num_blocks--)
+            while (num_blocks-- > 0)
                 file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
 
             // Set the file offset to the last offset calculated

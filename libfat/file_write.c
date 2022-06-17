@@ -9,6 +9,8 @@
 
 #define NUM_BLOCKS_BY_SIZE(size) \
     (sizeof(FileHeader) + size) / file->fs->header->block_size;
+#define OFFSET_BY_SIZE(size) \
+    (sizeof(FileHeader) + size) % file->fs->header->block_size;
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /**
@@ -19,6 +21,12 @@ FatResult change_file_dimension(FileHandle *file, int size) {
     FatResult res;    
     int old_num_blocks = NUM_BLOCKS_BY_SIZE(file->fh->size);
     int new_num_blocks = NUM_BLOCKS_BY_SIZE(size);
+    int offset = OFFSET_BY_SIZE(size);
+
+    // If "offset" is 0 then the last block will be full
+    // and we don't need to add another block
+    if (new_num_blocks > 0 && offset == 0)
+        new_num_blocks--;
 
     // If the file is too big, truncate it
     if (new_num_blocks < old_num_blocks) {
