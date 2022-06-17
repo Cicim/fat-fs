@@ -110,6 +110,37 @@ void print_fat_links(FatFs *fs, int bn) {
         print_fat_links(fs, block_number); } }
 
 
+void print_directory_tree(FatFs *fs, int block_number, int spaces) {
+    DirHandle dir;
+    DirEntry *entry;
+    dir.count = 0;
+    dir.block_number = block_number;
+
+    while (1) {
+        FatResult res = dir_handle_next(fs, &dir, &entry);
+        if (res == END_OF_DIR)
+            break;
+        else if (res != OK) {
+            printf(TEXT_WRONG "Error while reading directory\n");
+            return;
+        }
+        
+        if (entry->type == DIR_ENTRY_DIRECTORY) {
+            printf(TEXT_BLUE "%*s%s/ " TEXT_RESET "-> ", spaces, " ", entry->name);
+            print_fat_links(fs, entry->first_block);
+            print_directory_tree(fs, entry->first_block, spaces + 2);
+        } else {
+            printf("%*s%s -> ", spaces, " ", entry->name);
+            print_fat_links(fs, entry->first_block);
+        }
+    }
+}
+#define PRINT_DIRECTORY_TREE(block_number) { \
+    if (ext) {                                      \
+        printf("       Directory tree for %d" TEXT_RESET ": \n", block_number); \
+        print_directory_tree(fs, block_number, 8); } }
+
+
 
 /**
  * Testing functions and defines
@@ -829,6 +860,103 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(file_move, 20) {
+    FatFs *fs;
+    int block_number;
+    int block_number_2;
+    INIT_TEMP_FS(fs, 32, 32);
+
+    // Create a file structure
+    // /dir
+    //  /file
+    //  /file2
+    //  /file3
+    // /dir2
+    //  /file4
+    //  /file5
+    dir_create(fs, "/dir1");
+    dir_create(fs, "/dir2");
+    file_create(fs, "/dir1/file");
+    file_create(fs, "/dir1/file2");
+    file_create(fs, "/dir1/file3");
+    file_create(fs, "/dir2/file4");
+    file_create(fs, "/dir2/file5");
+
+    // Save the block number of file5
+    get_file_blocknum(fs, "/dir2/file5", DIR_ENTRY_FILE, &block_number_2);
+    TEST_TITLE("Move /dir2/file5 to /dir1/file5");
+    PRINT_DIRECTORY_TREE(0);
+    TEST_RESULT(file_move(fs, "/dir2/file5", "/dir1/file5"), OK);
+    PRINT_DIRECTORY_TREE(0);
+    // Compare it with the block number of /dir1/file5
+    TEST_EXISTS("/dir1/file5", DIR_ENTRY_FILE, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    // Move /dir1 inside /
+    TEST_TITLE("Move /dir1 to /");
+    PRINT_DIRECTORY_TREE(0);
+    get_file_blocknum(fs, "/dir1", DIR_ENTRY_DIRECTORY, &block_number_2);
+    TEST_RESULT(file_move(fs, "/dir1", "/"), FILE_ALREADY_EXISTS);
+    PRINT_DIRECTORY_TREE(0);
+    TEST_EXISTS("/dir1", DIR_ENTRY_DIRECTORY, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    // Move /dir1 inside /dir2
+    TEST_TITLE("Move /dir1 to /dir2");
+    PRINT_DIRECTORY_TREE(0);
+    TEST_RESULT(file_move(fs, "/dir1", "/dir2"), OK);
+    PRINT_DIRECTORY_TREE(0);
+    TEST_EXISTS("/dir2/dir1", DIR_ENTRY_DIRECTORY, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    INIT_TEMP_FS(fs, 32, 32);
+    // Create file structure
+    // /dir
+    //  /subdir
+    //  /file
+    dir_create(fs, "/dir");
+    dir_create(fs, "/dir/subdir");
+    file_create(fs, "/dir/file");
+
+    TEST_TITLE("Move /dir/file to /");
+    PRINT_DIRECTORY_TREE(0);
+    get_file_blocknum(fs, "/dir/file", DIR_ENTRY_FILE, &block_number_2);
+    TEST_RESULT(file_move(fs, "/dir/file", "/"), OK);
+    PRINT_DIRECTORY_TREE(0);
+    TEST_EXISTS("/file", DIR_ENTRY_FILE, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    TEST_TITLE("Move /subdir to /");
+    PRINT_DIRECTORY_TREE(0);
+    get_file_blocknum(fs, "/dir/subdir", DIR_ENTRY_DIRECTORY, &block_number_2);
+    TEST_RESULT(file_move(fs, "/dir/subdir", "/"), OK);
+    PRINT_DIRECTORY_TREE(0);
+    TEST_EXISTS("/subdir", DIR_ENTRY_DIRECTORY, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    TEST_TITLE("Rename /subdir to /sd");
+    PRINT_DIRECTORY_TREE(0);
+    get_file_blocknum(fs, "/subdir", DIR_ENTRY_DIRECTORY, &block_number_2);
+    TEST_RESULT(file_move(fs, "/subdir", "/sd"), OK);
+    PRINT_DIRECTORY_TREE(0);
+    TEST_EXISTS("/sd", DIR_ENTRY_DIRECTORY, &block_number);
+    TEST_INT("block number", block_number, block_number_2);
+
+    // Same path
+    TEST_TITLE("Move /subdir to /subdir");
+    TEST_RESULT(file_move(fs, "/dir/subdir", "/dir/subdir"), SAME_PATH);
+
+    TEST_TITLE("Move the root around");
+    TEST_RESULT(file_move(fs, "/", "/subdir"), INVALID_PATH);
+    fat_close(fs);
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
+
 
 /**
  * Test selector
@@ -847,6 +975,7 @@ const struct TestData tests[] = {
     TEST_ENTRY(dir_erase),
     TEST_ENTRY(file_open),
     TEST_ENTRY(file_write),
+    TEST_ENTRY(file_move),
 };
 
 int main(int argc, char **argv) {

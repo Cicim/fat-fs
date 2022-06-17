@@ -30,7 +30,7 @@ FatResult file_create(FatFs *fs, const char *path) {
 
     // Get an entry in the parent directory
     DirEntry *entry;
-    res = dir_insert(fs, parent_block, &entry, DIR_ENTRY_FILE, name);
+    res = dir_insert(fs, parent_block, &entry, FAT_EOF, DIR_ENTRY_FILE, name);
     if (res != OK)
         return res;
 

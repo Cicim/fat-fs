@@ -34,6 +34,7 @@ typedef enum FatResult {
     WRITE_INVALID_ARGUMENT = -18,
     FILE_OPEN_INVALID_ARGUMENT = -19,
     LS_INVALID_ARGUMENT = -20,
+    SAME_PATH = -21,
 } FatResult;
 
 typedef enum DirEntryType {
@@ -157,6 +158,9 @@ int file_read(FileHandle *file, char *buffer, int size);
 // returns an error if such location is outside of file boundaries
 FatResult file_seek(FileHandle *file, int offset, int whence);
 
+
+// Moves a file or directory from a location to another
+FatResult file_move(FatFs *fs, const char *source_path, const char *dest_path);
 
 /**
  * Directory Functions

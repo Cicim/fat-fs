@@ -268,6 +268,7 @@ static const char *fat_result_str_table[] = {
     [-WRITE_INVALID_ARGUMENT]     = "Invalid argument for write",
     [-FILE_OPEN_INVALID_ARGUMENT] = "Invalid argument for file open",
     [-LS_INVALID_ARGUMENT]        = "Invalid argument for ls",
+    [-SAME_PATH]                  = "Same paths",
 };
 
 /**
@@ -298,6 +299,36 @@ FatResult fat_unlink(FatFs *fs, int block_number) {
     return OK;
 }
 
+/**
+ * Get a DirEntry given a name
+ * @author Cicim
+ */
+FatResult dir_get_entry(FatFs *fs, int dir_block, const char *name, DirEntry **entry, DirHandle *dir) {
+    FatResult res;
+    
+    DirEntry *curr;
+    dir->block_number = dir_block;
+    dir->count = 0;
+
+    while (1) {
+        res = dir_handle_next(fs, dir, &curr);
+
+        // If you found a DIR_END, the file is not in this directory
+        if (res == END_OF_DIR)
+            return FILE_NOT_FOUND;
+        else if (res != OK)
+            return res;
+
+        // Make sure this is the name of the entry to delete
+        if (strcmp(curr->name, name) != 0) 
+            continue;
+        *entry = curr;
+        break;
+    }
+
+    return res;
+}
+
 
 /**
  * Delete an entry in a directory
@@ -309,33 +340,22 @@ FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char 
     // Get the directory size
     DirEntry *curr;
     DirHandle dir;
-    dir.block_number = block_number;
-    dir.count = 0;
+    res = dir_get_entry(fs, block_number, name, &curr, &dir);
+    if (res != OK)
+        return res;
 
-    while (1) {
-        res = dir_handle_next(fs, &dir, &curr);
-
-        // If you found a DIR_END, the file is not in this directory
-        if (res == END_OF_DIR)
-            return FILE_NOT_FOUND;
-        else if (res != OK)
-            return res;
-
-        // Make sure this is the name of the entry to delete
-        if (strcmp(curr->name, name) != 0) 
-            continue;
-
+    // If type is -1 ignore the entry type
+    if (type != -1) {
         if (type == DIR_ENTRY_FILE && curr->type == DIR_ENTRY_DIRECTORY)
             return NOT_A_FILE;
         else if (type == DIR_ENTRY_DIRECTORY && curr->type == DIR_ENTRY_FILE)
             return NOT_A_DIRECTORY;
-        
-        // Else the type is right
-        break;
     }
 
+
     // Save the block number of the entry to be returned
-    *child_block = curr->first_block;
+    if (child_block != NULL)
+        *child_block = curr->first_block;
 
     // Keep listing the directory until you find the end
     DirEntry *next;

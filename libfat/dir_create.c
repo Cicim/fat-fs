@@ -12,14 +12,17 @@
  * Insert an entry in a directory, and returns it
  * @author Cicim
  */
-FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, DirEntryType type, const char *name) {
+FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, int child_block, DirEntryType type, const char *name) {
     FatResult res;
+    int allocate_child = child_block == FAT_EOF;
     
     // Reserve space for the child block
-    int child_block = bitmap_get_free_block(fs);
-    if (child_block == FAT_EOF)
-        return NO_FREE_BLOCKS;
-    bitmap_set(fs, child_block, 1);
+    if (allocate_child) {
+        child_block = bitmap_get_free_block(fs);
+        if (child_block == FAT_EOF)
+            return NO_FREE_BLOCKS;
+        bitmap_set(fs, child_block, 1);
+    }
 
     // Get the directory size
     DirEntry *curr;
@@ -33,7 +36,8 @@ FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, DirEntryType
         // Make sure the name is not already used
         if (res == OK && strcmp(curr->name, name) == 0) {
             // Free the child block
-            bitmap_set(fs, child_block, 0);
+            if (allocate_child)
+                bitmap_set(fs, child_block, 0);
 
             return FILE_ALREADY_EXISTS;
         }
@@ -53,7 +57,8 @@ FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, DirEntryType
         // If there are no free blocks, return an error
         if (next_block == FAT_EOF) {
             // Free the child block
-            bitmap_set(fs, child_block, 0);
+            if (allocate_child)
+                bitmap_set(fs, child_block, 0);
 
             return NO_FREE_BLOCKS;
         }
@@ -100,7 +105,7 @@ FatResult dir_create(FatFs *fs, const char *path) {
 
     // Get an entry in the parent directory
     DirEntry *entry;
-    res = dir_insert(fs, parent_block, &entry, DIR_ENTRY_DIRECTORY, name);
+    res = dir_insert(fs, parent_block, &entry, FAT_EOF, DIR_ENTRY_DIRECTORY, name);
     if (res != OK)
         return res;
 

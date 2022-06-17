@@ -16,6 +16,7 @@ OBJS = dir_change.o\
 	file_create.o\
 	file_erase.o\
 	file_handle.o\
+	file_move.o\
 	file_read.o\
 	file_seek.o\
 	file_write.o\
