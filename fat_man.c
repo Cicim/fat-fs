@@ -156,9 +156,17 @@ FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path
     // Write the file
     char buffer[128];
     int read_bytes = 0;
-    while ((read_bytes = fread(buffer, 1, 128, external_file)) > 0) {
+    while (1) {
+        read_bytes = fread(buffer, 1, 128, external_file);
+        if (read_bytes == 0)
+            break;
+        if (read_bytes < 0) {
+            printf("Error while reading the external file\n");
+            return OK;
+        }
+
         res = file_write(file, buffer, read_bytes);
-        if (res < 0)
+        if (res != read_bytes)
             return res;
     }
 
@@ -166,6 +174,33 @@ FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path
     file_close(file);
     fclose(external_file);
 
+    return OK;
+}
+
+/**
+ * Append a number of bytes to the file
+ * @author Cicim
+ */
+FatResult cmd_append(FatFs *fs, const char *path, char *character, int bytes) {
+    if (path == NULL)
+        return INVALID_PATH;
+    if (character == NULL) {
+        printf("append error: No string passed\n");
+        return OK;
+    }
+
+    // Open the file in write mode in the internal fs
+    FileHandle *file;
+    FatResult res = file_open(fs, path, &file, "a");
+    if (res != OK)
+        return res;
+    
+    // Write to the file
+    for (int i = 0; i < bytes; i++)
+        if (file_write(file, character, 1) != 1)
+            return res;
+
+    file_close(file);
     return OK;
 }
 
@@ -357,6 +392,8 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_free(fs);
     else if (strcmp(cmd_name, "ec") == 0)
         res = cmd_ec(fs, command[1], command[2]);
+    else if (strcmp(cmd_name, "append") == 0)
+        res = cmd_append(fs, command[1], command[2], command[3] ? atoi(command[3]) : 1);
     else
         printf("Unknown command: %s\n", cmd_name);
 

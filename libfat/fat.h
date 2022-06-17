@@ -64,7 +64,7 @@ typedef struct FatFs {
     int buffer_size;
 
     char *bitmap_ptr;
-    char *fat_ptr;
+    int *fat_ptr;
     char *blocks_ptr;
 } FatFs;
 

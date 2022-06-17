@@ -153,9 +153,9 @@ FatResult fat_open(FatFs **fs, char *fat_path) {
     // The bitmap begins after the header
     (*fs)->bitmap_ptr = fat_buffer + sizeof(FatHeader);
     // The FAT table begins after the bitmap
-    (*fs)->fat_ptr = (*fs)->bitmap_ptr + (blocks_count / 8);
+    (*fs)->fat_ptr = (int*)((*fs)->bitmap_ptr + (blocks_count / 8));
     // The blocks begin after the FAT
-    (*fs)->blocks_ptr = (*fs)->fat_ptr + (blocks_count * sizeof(int));
+    (*fs)->blocks_ptr = (char*)(*fs)->fat_ptr + (blocks_count * sizeof(int));
 
     return OK;
 }
