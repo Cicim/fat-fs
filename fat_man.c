@@ -305,6 +305,7 @@ typedef struct LsList {
     char date_created[20];
     char date_modified[20];
     int size;
+    int blocks;
 } LsList;
 
 FatResult cmd_ls(FatFs *fs, char **command_arguments) {
@@ -348,13 +349,19 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         LsList *elem = malloc(sizeof(LsList));
 
         if (entry.type == DIR_ENTRY_DIRECTORY) {
-            elem->size = 0;
+            res = file_size(fs, entry.name, &elem->size, &elem->blocks);
+            if (res != OK)
+                return res;
             strcpy(elem->date_created, "--");
             strcpy(elem->date_modified, "--");
         } 
         else {
             FileHeader *fh = (FileHeader *) 
                 (fs->blocks_ptr + entry.first_block * fs->header->block_size);
+
+            res = file_size(fs, entry.name, &elem->size, &elem->blocks);
+            if (res != OK)
+                return res;
         
             // Get the max size of the elements
             while (fh->size > max_size) {
@@ -389,20 +396,22 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
 
     if (args.argument_long)
-        printf(TEXT_GREEN "TYPE  %*sSIZE  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
-        MAX(0, spaces - 4), "");
+        printf(TEXT_GREEN "TYPE  %*sSIZE  %*sBLOCKS  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
+        MAX(0, spaces - 4), "", MAX(0, spaces - 6), "");
 
     // If "-a" is used, list also "." and ".." directories
     if (args.argument_all) {
         if (args.argument_long) {
             printf("DIR   ");
-            printf("%*d  ", MAX(spaces, 4), 0);
+            printf("%*s  ", MAX(spaces, 4), "--");
+            printf("%*s  ", MAX(spaces, 6), "--");
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE ".\n" TEXT_RESET);
 
             printf("DIR   ");
-            printf("%*d  ", MAX(spaces, 4), 0);
+            printf("%*s  ", MAX(spaces, 4), "--");
+            printf("%*s  ", MAX(spaces, 6), "--");
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE "..\n" TEXT_RESET);
@@ -434,7 +443,8 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         if (args.argument_long) {
             if (head->type == DIR_ENTRY_DIRECTORY) {
                 printf("DIR   ");
-                printf("%*d  ", MAX(spaces, 4), 0);
+                printf("%*d  ", MAX(spaces, 4), head->size);
+                printf("%*d  ", MAX(spaces, 6), head->blocks);
                 printf("--                   ");
                 printf("--                   ");
                 printf(TEXT_BLUE "%s\n" TEXT_RESET, head->name);
@@ -442,12 +452,17 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
             else {
                 printf("FILE  ");
                 printf("%*d  ", MAX(spaces, 4), head->size);
+                printf("%*d  ", MAX(spaces, 6), head->blocks);
                 printf("%s  ", head->date_created); 
                 printf("%s  ", head->date_modified); 
                 printf("%s\n", head->name);
             }
         }
+
+        // Go to the next block and free the current one
+        LsList *tmp = head;
         head = head->next;
+        free(tmp);
     }
     if (!args.argument_long) printf("\n");
 
