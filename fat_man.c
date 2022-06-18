@@ -73,6 +73,17 @@ FatResult cmd_mv(FatFs *fs, const char *source_path, const char *dest_path) {
 }
 
 /**
+ * Copy a file
+ * @author Cicim
+ */
+FatResult cmd_cp(FatFs *fs, const char *source_path, const char *dest_path) {
+    if (source_path == NULL || dest_path == NULL)
+        return INVALID_PATH;
+
+    return file_copy(fs, source_path, dest_path);
+}
+
+/**
  * Print the contents of the file to stdout
  * @author Cicim
  */
@@ -496,6 +507,8 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_ls(fs, command + 1);
     else if (strcmp(cmd_name, "mv") == 0)
         res = cmd_mv(fs, command[1], command[2]);
+    else if (strcmp(cmd_name, "cp") == 0)
+        res = cmd_cp(fs, command[1], command[2]);
     else if (strcmp(cmd_name, "cat") == 0)
         res = cmd_cat(fs, command[1]);
     else if (strcmp(cmd_name, "rm") == 0)
@@ -531,7 +544,7 @@ int run_shell(char *file) {
         return 1;
     }
 
-    printf("Welcome to FAT Manager. Type 'exit' to quit.\n");
+    printf("Welcome to FAT Manager. Type 'exit' to quit or 'quit' to exit.\n");
     char input[MAX_PATH_LENGTH * MAX_COMMAND_ARGUMENTS];
     while (1) {
         // Prompt
@@ -542,7 +555,7 @@ int run_shell(char *file) {
         input[strlen(input) - 1] = '\0';
 
         // If it is "exit", break the loop
-        if (strcmp(input, "exit") == 0)
+        if (strcmp(input, "exit") == 0 || strcmp(input, "quit") == 0)
             break;
         
         // Split the input into commands

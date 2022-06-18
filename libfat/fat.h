@@ -167,9 +167,11 @@ int file_read(FileHandle *file, char *buffer, int size);
 // returns an error if such location is outside of file boundaries
 FatResult file_seek(FileHandle *file, int offset, int whence);
 
-
 // Moves a file or directory from a location to another
 FatResult file_move(FatFs *fs, const char *source_path, const char *dest_path);
+
+// Copy a file or directory from to another location
+FatResult file_copy(FatFs *fs, const char *source_path, const char *dest_path);
 
 /**
  * Directory Functions
