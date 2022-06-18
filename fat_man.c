@@ -234,7 +234,7 @@ FatResult cmd_repeat(FatFs *fs, const char *path, char *character, int bytes) {
 
     // Open the file in write mode in the internal fs
     FileHandle *file;
-    FatResult res = file_open(fs, path, &file, "a");
+    FatResult res = file_open(fs, path, &file, "a+");
     if (res != OK)
         return res;
 
@@ -551,7 +551,7 @@ void help() {
 void help_init() {
     printf(
         "Usage: "COMMAND_NAME" -i <file> blocks <blocks count> size <block size>\n"
-        " Initializes a file system with 160 blocks of size 128 Bytes\n"
+        " Initializes a file system with <blocks count> blocks of size <block size> Bytes\n"
         " Note: both values should be positive and divisible by 32\n"
         "Usage: "COMMAND_NAME" -i -s <file>\n"
         " Shows a prompt to initialize the file system\n"
