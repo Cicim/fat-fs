@@ -252,6 +252,7 @@ void test_dir_create() {
     printf("file->block_number = %d\n", file->current_block_number);
     file_close(file);
 
+    fat_close(fs);
     printf("************************************************************************************\n\n");
 }
 
@@ -374,6 +375,8 @@ void test_dir_delete() {
     printf("/ (%d)\n", ROOT_DIR_BLOCK);
     recursive_print_directories(fs, ROOT_DIR_BLOCK, 1);
 
+    dir_close(dir);
+    fat_close(fs);
     printf("************************************************************************************\n\n");
 }
 
