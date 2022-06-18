@@ -447,19 +447,24 @@ FatResult cmd_write(FatFs *fs, const char *path) {
     if (path == NULL)
         return INVALID_PATH;
 
-    printf("--Create the file if not exists? (y/n): ");
-    char c = getchar();
-    getchar();
-    char mode[3] = "w";
-    if (c == 'y' || c == 'Y') mode[1] = '+';
-    else if (c == 'n' || c == 'N') mode[1] = 0;
-    else return WRITE_INVALID_ARGUMENT;
-    mode[2] = 0;
-
     // Open the file
     FileHandle *file;
-    FatResult res = file_open(fs, path, &file, mode);
-    if (res != OK)
+    FatResult res = file_open(fs, path, &file, "w");
+    if (res == FILE_NOT_FOUND) {
+        printf("--File not found. Create it? (y/n): ");
+        char c = getchar();
+        getchar();
+        if (c == 'y' || c == 'Y') {
+            res = file_open(fs, path, &file, "w+");
+            if (res != OK)
+                return res;
+        }
+        else if (c == 'n' || c == 'N') 
+            return OK;
+        else 
+        return WRITE_INVALID_ARGUMENT;
+    }
+    else if (res != OK)
         return res;
 
     printf("--Your text (max. 255 bytes):\n");
