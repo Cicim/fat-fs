@@ -195,7 +195,7 @@ FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path
  * Append a number of bytes to the file
  * @author Cicim
  */
-FatResult cmd_append(FatFs *fs, const char *path, char *character, int bytes) {
+FatResult cmd_repeat(FatFs *fs, const char *path, char *character, int bytes) {
     if (path == NULL)
         return INVALID_PATH;
     if (character == NULL) {
@@ -440,29 +440,33 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
 }
 
 /**
- * Write in a file from stdin
+ * Write/Append in a file from stdin
  * @author Claziero
  */
-FatResult cmd_write(FatFs *fs, const char *path) {
+FatResult cmd_write(FatFs *fs, const char *path, char *mode) {
     if (path == NULL)
         return INVALID_PATH;
 
     // Open the file
     FileHandle *file;
-    FatResult res = file_open(fs, path, &file, "w");
+    FatResult res = file_open(fs, path, &file, mode);
     if (res == FILE_NOT_FOUND) {
         printf("--File not found. Create it? (y/n): ");
         char c = getchar();
         getchar();
         if (c == 'y' || c == 'Y') {
-            res = file_open(fs, path, &file, "w+");
+            if (mode[0] == 'w')
+                res = file_open(fs, path, &file, "w+");
+            else
+                res = file_open(fs, path, &file, "a+");
+
             if (res != OK)
                 return res;
         }
         else if (c == 'n' || c == 'N') 
             return OK;
         else 
-        return WRITE_INVALID_ARGUMENT;
+            return WRITE_INVALID_ARGUMENT;
     }
     else if (res != OK)
         return res;
@@ -564,10 +568,12 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_free(fs);
     else if (strcmp(cmd_name, "ec") == 0)
         res = cmd_ec(fs, command[1], command[2]);
-    else if (strcmp(cmd_name, "append") == 0)
-        res = cmd_append(fs, command[1], command[2], command[3] ? atoi(command[3]) : 1);
+    else if (strcmp(cmd_name, "repeat") == 0)
+        res = cmd_repeat(fs, command[1], command[2], command[3] ? atoi(command[3]) : 1);
     else if (strcmp(cmd_name, "write") == 0)
-        res = cmd_write(fs, command[1]);
+        res = cmd_write(fs, command[1], "w");
+    else if (strcmp(cmd_name, "append") == 0)
+        res = cmd_write(fs, command[1], "a");
     else
         printf("Unknown command: %s\n", cmd_name);
 
