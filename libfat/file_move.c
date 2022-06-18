@@ -224,6 +224,16 @@ FatResult file_copy(FatFs *fs, const char *source_path, const char *dest_path) {
     if (res != OK)
         return res;
 
+    // Get the source block size
+    int src_block_size, src_size;
+    res = get_recursive_size(fs, data.src_block, data.src_type, &src_size, &src_block_size);
+    if (res != OK)
+        return res;
+
+    // Exit if it is too big
+    if (src_block_size + 1 > fs->header->free_blocks)
+        return NO_FREE_BLOCKS;
+
     // Copy the source block to the destination block folder and give it the destination_name
     int new_block;
     res = file_copy_recursive(fs, data.src_block, data.src_type, &new_block);
