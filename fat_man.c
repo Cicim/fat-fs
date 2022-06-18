@@ -2,6 +2,7 @@
  * FAT File System Manager
  * @authors Cicim, Claziero
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,6 +21,8 @@
 #define TEXT_BLUE "\033[34m"
 #define TEXT_GREEN "\033[32m"
 #define TEXT_RESET "\033[0m"
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 /**
  * Commands
@@ -337,8 +340,6 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         elem->next = NULL;
 
         // Order items by name
-        LsList *tmp = head;
-
         // If "elem" is smaller than the first element
         if (head == NULL || strcmp(elem->name, head->name) < 0) {
             elem->next = head;
@@ -346,7 +347,8 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         }
         // All other elements
         else {
-            while (tmp->next != NULL && strcmp(tmp->name, elem->name) > 0)
+            LsList *tmp = head;
+            while (tmp->next != NULL && strcmp(tmp->next->name, elem->name) < 0)
                 tmp = tmp->next;
 
             elem->next = tmp->next;
@@ -355,20 +357,20 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
 
     if (args.argument_long)
-        printf(TEXT_GREEN "TYPE  SIZE%*s  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
-        spaces - 3, "");
+        printf(TEXT_GREEN "TYPE  %*sSIZE  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
+        MAX(0, spaces - 4), "");
 
     // If "-a" is used, list also "." and ".." directories
     if (args.argument_all) {
         if (args.argument_long) {
             printf("DIR   ");
-            printf("%*s0  ", spaces, " ");
+            printf("%*d  ", MAX(spaces, 4), 0);
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE ".\n" TEXT_RESET);
 
             printf("DIR   ");
-            printf("%*s0  ", spaces, " ");
+            printf("%*d  ", MAX(spaces, 4), 0);
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE "..\n" TEXT_RESET);
@@ -400,20 +402,14 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         if (args.argument_long) {
             if (head->type == DIR_ENTRY_DIRECTORY) {
                 printf("DIR   ");
-                printf("%*s0  ", spaces, " ");
+                printf("%*d  ", MAX(spaces, 4), 0);
                 printf("--                   ");
                 printf("--                   ");
                 printf(TEXT_BLUE "%s\n" TEXT_RESET, head->name);
             }
             else {
-                int size = 10, space = 0;
-                while (head->size > size) {
-                    size *= 10;
-                    space++;
-                }
-
                 printf("FILE  ");
-                printf("%*s%d  ", spaces - space, " ", head->size);
+                printf("%*d  ", MAX(spaces, 4), head->size);
                 printf("%s  ", head->date_created); 
                 printf("%s  ", head->date_modified); 
                 printf("%s\n", head->name);
