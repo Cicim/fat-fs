@@ -145,7 +145,7 @@ FatResult file_print(FileHandle *file) {
 
     int i = 0;
     while (i < file->fh->size) {
-        FatResult res = file_read(file, buffer, 256);
+        int res = file_read(file, buffer, 256);
         if (res == 0)
             break;
         else if (res < 0)

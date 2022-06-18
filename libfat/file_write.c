@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "internals.h"
 
 #define NUM_BLOCKS_BY_SIZE(size) \
@@ -110,6 +111,7 @@ int file_write(FileHandle *file, const char *data, int size) {
     if (res != OK)
         return res;
 
+    // If the current block is full, go to the next block
     if (file->block_offset == file->fs->header->block_size) {
         file->block_offset = 0;
         file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
@@ -134,15 +136,24 @@ int file_write(FileHandle *file, const char *data, int size) {
             file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
             file->block_offset = 0;
         }
-        else if (file->block_offset + size_to_write == file->fs->header->block_size)
-            file->block_offset = file->fs->header->block_size;
         else 
             file->block_offset += size_to_write;
         
     }
     file->file_offset += written_size;
 
-    // TODO: Update modification time
+    // Update modification time
+    time_t rawtime;
+    struct tm * timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    file->fh->date_modified.sec = timeinfo->tm_sec;
+    file->fh->date_modified.min = timeinfo->tm_min;
+    file->fh->date_modified.hour = timeinfo->tm_hour;
+    file->fh->date_modified.day = timeinfo->tm_mday;
+    file->fh->date_modified.month = timeinfo->tm_mon + 1;
+    file->fh->date_modified.year = timeinfo->tm_year + 1900;
 
     return written_size;
 }
