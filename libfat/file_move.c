@@ -11,10 +11,10 @@ typedef struct MoveData {
     DirEntryType src_type;
     int src_block;
     int destination_block;
-    char *destination_name;
+    char destination_name[MAX_FILENAME_LENGTH];
 // Move-only
     int src_dir_block;
-    char *source_name;
+    char source_name[MAX_FILENAME_LENGTH];
 } MoveData;
 
 /**
@@ -109,9 +109,9 @@ FatResult path_get_data(FatFs *fs, const char *source_path, const char *dest_pat
     path->src_type = src_type;
     path->src_block = src_block;
     path->src_dir_block = src_dir_block;
-    path->source_name = source_name;
+    strcpy(path->source_name, source_name);
     path->destination_block = destination_block;
-    path->destination_name = destination_name;
+    strcpy(path->destination_name, destination_name);
 
     return OK;
 }

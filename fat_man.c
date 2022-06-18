@@ -176,16 +176,20 @@ FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path
     // If the file is too large, exit
     if (size > (fs->header->free_blocks - 2) * fs->header->block_size) {
         printf("File does not fit in this file system\n");
+        fclose(external_file);
         return OK;
     }
     // Seek to the beginning of the file
     fseek(external_file, 0, SEEK_SET);
 
     // Open the file in write mode in the internal fs
+    file_erase(fs, internal_path);
     FileHandle *file;
     FatResult res = file_open(fs, internal_path, &file, "w+");
-    if (res != OK)
+    if (res != OK) {
+        fclose(external_file);
         return res;
+    }
 
     // Write the file
     char buffer[128];
@@ -196,12 +200,17 @@ FatResult cmd_ec(FatFs *fs, const char *external_path, const char *internal_path
             break;
         if (read_bytes < 0) {
             printf("Error while reading the external file\n");
+            fclose(external_file);
+            file_close(file);
             return OK;
         }
 
         res = file_write(file, buffer, read_bytes);
-        if (res != read_bytes)
+        if (res != read_bytes) {
+            file_close(file);
+            fclose(external_file);
             return res;
+        }
     }
 
     // Close the files
@@ -228,11 +237,13 @@ FatResult cmd_repeat(FatFs *fs, const char *path, char *character, int bytes) {
     FatResult res = file_open(fs, path, &file, "a");
     if (res != OK)
         return res;
-    
+
     // Write to the file
     for (int i = 0; i < bytes; i++)
-        if (file_write(file, character, 1) != 1)
+        if (file_write(file, character, 1) != 1) {
+            file_close(file);
             return res;
+        }
 
     file_close(file);
     return OK;
@@ -513,8 +524,10 @@ FatResult cmd_write(FatFs *fs, const char *path, char *mode) {
         
         // Write the text
         res = file_write(file, text, strlen(text));
-        if (res < strlen(text))
+        if (res < strlen(text)) {
+            file_close(file);
             return res;
+        }
     }
     
     // Close the file
