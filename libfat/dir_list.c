@@ -63,3 +63,34 @@ FatResult dir_list(DirHandle *dir, DirEntry *entry) {
 
     return OK;
 }
+
+
+// Returns the size in blocks of the given directory
+FatResult file_size(FatFs *fs, const char *path, int *size, int *blocks) {
+    FatResult res;
+
+    if (IS_ROOT(path))
+        return get_recursive_size(fs, ROOT_DIR_BLOCK, DIR_ENTRY_DIRECTORY, size, blocks);
+
+    // Parse the path
+    char path_buffer[MAX_PATH_LENGTH];
+    char *dir_path, *name;
+    res = path_get_components(fs, path, path_buffer, &dir_path, &name);
+    if (res != OK)
+        return res;
+
+    // Get the dir block
+    int dir_block;
+    res = dir_get_first_block(fs, dir_path, &dir_block);
+
+    // Get the name entry
+    DirEntry *entry;
+    DirHandle dir;
+    res = dir_get_entry(fs, dir_block, name, &entry, &dir);
+    if (res != OK)
+        return res;
+
+    // Return the size of the entry
+    return get_recursive_size(fs, entry->first_block, entry->type, size, blocks);
+}
+

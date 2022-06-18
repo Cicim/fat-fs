@@ -173,6 +173,9 @@ FatResult file_move(FatFs *fs, const char *source_path, const char *dest_path);
 // Copy a file or directory from to another location
 FatResult file_copy(FatFs *fs, const char *source_path, const char *dest_path);
 
+// Gets the size and block size of a file or a directory
+FatResult file_size(FatFs *fs, const char *path, int *size, int *blocks);
+
 /**
  * Directory Functions
  */

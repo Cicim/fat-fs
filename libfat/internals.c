@@ -257,7 +257,7 @@ static const char *fat_result_str_table[] = {
     [-INVALID_PATH]               = "Invalid path",
     [-DIR_END_NOT_FOUND]          = "Cannot find DIR_END entry in the last block of the directory",
     [-END_OF_DIR]                 = "Directory end",
-    [-FILE_NOT_FOUND]             = "File not found",
+    [-FILE_NOT_FOUND]             = "No such file or directory",
     [-NOT_A_DIRECTORY]            = "Not a directory",
     [-NO_FREE_BLOCKS]             = "No free blocks",
     [-FILE_ALREADY_EXISTS]        = "File already exists",
@@ -382,6 +382,65 @@ FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char 
         // Set the next block to FAT_EOF
         fat_set_next_block(fs, last_entry_block, FAT_EOF);
     }
+
+    return OK;
+}
+
+#define CEIL(x, y) (((x) + (y) - 1) / (y))
+
+
+/**
+ * Get the size of a directory or a file
+ * @author Cicim
+ */
+FatResult get_recursive_size(FatFs *fs, int block_number, int type, int *size, int *blocks) {
+    if (type == DIR_ENTRY_FILE) {
+        // Get the file header
+        FileHeader *header = (FileHeader *)(fs->blocks_ptr + block_number * fs->header->block_size);
+
+        // Get the size
+        *size = header->size;
+        // Get the number of occupied blocks
+        *blocks = CEIL(header->size + sizeof(FileHeader), fs->header->block_size);
+
+        return OK;
+    }
+
+    // Loop over the directory
+    DirEntry *curr;
+    DirHandle dir;
+    FatResult res;
+    dir.block_number = block_number;
+    dir.count = 0;
+
+    int total_blocks = 0;
+    int total_size = 0;
+
+    while (1) {
+        res = dir_handle_next(fs, &dir, &curr);
+
+        if (res == END_OF_DIR)
+            break;
+        else if (res != OK)
+            return res;
+
+        // Count the file size
+        int file_blocks, file_size;
+        res = get_recursive_size(fs, curr->first_block, curr->type, &file_size, &file_blocks);
+        if (res != OK)
+            return res;
+        // Add the file size to the total
+        total_size += file_size;
+        // Add the number of blocks to the total
+        total_blocks += file_blocks;
+    }
+
+    // Add the directory size
+    total_blocks += CEIL(dir.count + 1, ENTRIES_PER_BLOCK(fs));
+    total_size += (dir.count + 1) * sizeof(DirEntry);
+
+    *blocks = total_blocks;
+    *size = total_size;
 
     return OK;
 }

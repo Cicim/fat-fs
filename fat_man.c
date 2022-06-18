@@ -21,6 +21,7 @@
 #define TEXT_BLUE "\033[34m"
 #define TEXT_GREEN "\033[32m"
 #define TEXT_RESET "\033[0m"
+#define TEXT_ERROR "\033[38;2;231;88;90m"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -132,7 +133,26 @@ FatResult cmd_free(FatFs *fs) {
     int free_bytes = free_blocks * fs->header->block_size;
 
     printf("%d free blocks (%d bytes)\n", free_blocks, free_bytes);
+    printf("%d total blocks (%d bytes) \n", fs->header->blocks_count, fs->header->block_size * fs->header->blocks_count);
+    printf("disk usage: %.2f%%\n", (fs->header->blocks_count - free_blocks) / (float) fs->header->blocks_count * 100);
 
+    return OK;
+}
+
+/**
+ * Print the number of free blocks in the file system
+ * @author Cicim
+ */
+FatResult cmd_size(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    int size, blocks;
+    FatResult res = file_size(fs, path, &size, &blocks);
+    if (res != OK)
+        return res;
+
+    printf("%d bytes (%d blocks, %d bytes on disk)\n", size, blocks, blocks * fs->header->block_size);
     return OK;
 }
 
@@ -564,6 +584,8 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_rm(fs, command[1]);
     else if (strcmp(cmd_name, "rmdir") == 0)
         res = cmd_rmdir(fs, command[1]);
+    else if (strcmp(cmd_name, "size") == 0)
+        res = cmd_size(fs, command[1]);
     else if (strcmp(cmd_name, "free") == 0)
         res = cmd_free(fs);
     else if (strcmp(cmd_name, "ec") == 0)
@@ -578,7 +600,7 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         printf("Unknown command: %s\n", cmd_name);
 
     if (res != OK)
-        printf("%s error: %s\n", cmd_name, fat_result_string(res));
+        printf(TEXT_ERROR "%s error: %s\n" TEXT_RESET, cmd_name, fat_result_string(res));
 }
 
 

@@ -60,3 +60,5 @@ FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, int child_bl
 FatResult dir_delete(FatFs *fs, int block_number, DirEntryType type, const char *name, int *child_block);
 // Returns the block number of the given entry (needs an allocated, but not initialized DirHandle)
 FatResult dir_get_entry(FatFs *fs, int dir_block, const char *name, DirEntry **entry, DirHandle *dir);
+// Returns the size in blocks of the given directory
+FatResult get_recursive_size(FatFs *fs, int block_number, int type, int *blocks, int *size);
