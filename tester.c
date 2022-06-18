@@ -322,6 +322,7 @@ cleanup:
 // @author Cicim
 TEST(fat_open, 6) {
     FatFs *fs;
+    FILE *fp;
 
     remove(TEMP_FILE);
     fat_init(TEMP_FILE, 32, 32);
@@ -343,12 +344,13 @@ TEST(fat_open, 6) {
     TEST_RESULT(fat_open(&fs, "non-existing-file"), FAT_BUFFER_ERROR);
 
     // Errors with buffer
-    fopen(TEMP_FILE, "w");
-    fwrite("Hello world", 1, 12, fopen(TEMP_FILE, "r"));
+    fclose(fopen(TEMP_FILE, "w"));
+    fwrite("Hello world", 1, 12, fp = fopen(TEMP_FILE, "r"));
     TEST_TITLE("Trying to open a buffer with the wrong magic");
     TEST_RESULT(fat_open(&fs, TEMP_FILE), FAT_OPEN_ERROR);
 
 cleanup:
+    fclose(fp);
     remove(TEMP_FILE);
     END
 }
@@ -698,6 +700,7 @@ TEST(dir_open, 12) {
     if (dir->fs != fs) {
         KO_MESSAGE("The fs pointer was not correctly initialized");
     } else OK_MESSAGE("The fs pointer was correctly initialized");
+    dir_close(dir);
 
     TEST_TITLE("Opening a non-existing directory: /fake");
     TEST_RESULT(dir_open(fs, "/fake", &dir), FILE_NOT_FOUND);
@@ -759,6 +762,7 @@ TEST(dir_list, 16) {
     } else OK_MESSAGE("The entry type was correctly initialized");
 
 cleanup:
+    dir_close(dir);
     fat_close(fs);
     END
 }
@@ -856,6 +860,7 @@ TEST(file_write, 12) {
 
 cleanup:
     file_close(file);
+    fat_close(fs);
 
     END
 }
@@ -909,6 +914,7 @@ TEST(file_move, 20) {
     PRINT_DIRECTORY_TREE(0);
     TEST_EXISTS("/dir2/dir1", DIR_ENTRY_DIRECTORY, &block_number);
     TEST_INT("block number", block_number, block_number_2);
+    fat_close(fs);
 
     INIT_TEMP_FS(fs, 32, 32);
     // Create file structure
@@ -949,7 +955,6 @@ TEST(file_move, 20) {
 
     TEST_TITLE("Move the root around");
     TEST_RESULT(file_move(fs, "/", "/subdir"), INVALID_PATH);
-    fat_close(fs);
 
 cleanup:
     fat_close(fs);
@@ -1032,9 +1037,9 @@ TEST(file_seek, 17) {
     TEST_TITLE("Seek after the end");
     file_open(fs, "/bigfile", &file, "r");
     TEST_RESULT(file_seek(file, file->fh->size + 1, FILE_SEEK_SET), SEEK_INVALID_ARGUMENT);
-    file_close(file);
 
 cleanup:
+    file_close(file);
     fat_close(fs);
     END
 }
@@ -1082,9 +1087,9 @@ TEST(file_read, 6) {
     TEST_INT_RESULT(file_read(file, buffer, 22), 22);
     buffer[22] = 0;
     TEST_STRINGS(buffer, "0123456789ABCDEFGHIJKL");
-    file_close(file);
 
 cleanup:
+    file_close(file);
     fat_close(fs);
     END
 }

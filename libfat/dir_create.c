@@ -34,7 +34,7 @@ FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, int child_bl
         res = dir_handle_next(fs, &dir, &curr);
 
         // Make sure the name is not already used
-        if (res == OK && strcmp(curr->name, name) == 0) {
+        if (res == OK && strncmp(curr->name, name, MAX_FILENAME_LENGTH) == 0) {
             // Free the child block
             if (allocate_child)
                 bitmap_set(fs, child_block, 0);
@@ -76,7 +76,7 @@ FatResult dir_insert(FatFs *fs, int block_number, DirEntry **entry, int child_bl
 
     // Update the values for the child entry
     (*entry)->type = type;
-    strcpy((*entry)->name, name);
+    strncpy((*entry)->name, name, MAX_FILENAME_LENGTH);
     (*entry)->first_block = child_block;
 
     return OK;
