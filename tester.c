@@ -202,7 +202,7 @@ int _test_string(const char *got, const char *expected, int ext) {
                 got, expected);
     return 0;
 }
-#define COMPARE_STRINGS(got, expected) score += _test_string(got, expected, ext)
+#define TEST_STRINGS(got, expected) score += _test_string(got, expected, ext)
 
 // Test whether a file exists and print a human-readable message
 int _test_exists(FatFs *fs, const char *path, int ext, DirEntryType type, int *block_number) {
@@ -359,7 +359,7 @@ TEST(path_get_absolute, 30) {
         TEST_TITLE(text ": " from " + " path " = " expected);                \
         strcpy(fs->current_directory, from);                                 \
         TEST_RESULT(path_get_absolute(fs, path, fs->current_directory), OK); \
-        COMPARE_STRINGS(fs->current_directory, expected);
+        TEST_STRINGS(fs->current_directory, expected);
     #define TEST_INVALID_PATH_SUM(text, from, path)     \
         TEST_TITLE(text ": " from " + " path);          \
         strcpy(fs->current_directory, from);            \
@@ -370,7 +370,7 @@ TEST(path_get_absolute, 30) {
     INIT_TEMP_FS(fs, 64, 32);
 
     TEST_TITLE("The current directory starts from the root");
-    COMPARE_STRINGS(fs->current_directory, "/");
+    TEST_STRINGS(fs->current_directory, "/");
 
     TEST_TITLE("Empty-string addition");
     TEST_RESULT(path_get_absolute(fs, "", fs->current_directory), INVALID_PATH);
@@ -404,8 +404,8 @@ TEST(path_get_components, 14) {
     #define TEST_PATH_COMPONENTS(text, path, dir, file)\
         TEST_TITLE(text ": " path " = " dir " and " file);\
         TEST_RESULT(path_get_components(fs, path, path_buffer, &dir_path, &name), OK);\
-        COMPARE_STRINGS(dir_path, dir);\
-        COMPARE_STRINGS(name, file);
+        TEST_STRINGS(dir_path, dir);\
+        TEST_STRINGS(name, file);
 
 
     FatFs *fs;
@@ -414,7 +414,7 @@ TEST(path_get_components, 14) {
     INIT_TEMP_FS(fs, 32, 32);
 
     TEST_TITLE("The current directory starts from the root");
-    COMPARE_STRINGS(fs->current_directory, "/");
+    TEST_STRINGS(fs->current_directory, "/");
 
     TEST_TITLE("Splitting / should be invalid");\
     TEST_RESULT(path_get_components(fs, "/", path_buffer, &dir_path, &name), INVALID_PATH);
@@ -725,7 +725,7 @@ TEST(dir_list, 16) {
     file_create(fs, "/file1");
     dir_open(fs, "/", &dir);
     TEST_RESULT(dir_list(dir, &entry), OK);
-    COMPARE_STRINGS(entry.name, "file1");
+    TEST_STRINGS(entry.name, "file1");
     if (entry.type != DIR_ENTRY_FILE) {
         KO_MESSAGE("The entry type was not correctly initialized");
     } else OK_MESSAGE("The entry type was correctly initialized");
@@ -738,22 +738,22 @@ TEST(dir_list, 16) {
     file_create(fs, "/file4");
     dir_open(fs, "/", &dir);
     TEST_RESULT(dir_list(dir, &entry), OK);
-    COMPARE_STRINGS(entry.name, "file1");
+    TEST_STRINGS(entry.name, "file1");
     if (entry.type != DIR_ENTRY_FILE) {
         KO_MESSAGE("The entry type was not correctly initialized");
     } else OK_MESSAGE("The entry type was correctly initialized");
     TEST_RESULT(dir_list(dir, &entry), OK);
-    COMPARE_STRINGS(entry.name, "file2");
+    TEST_STRINGS(entry.name, "file2");
     if (entry.type != DIR_ENTRY_FILE) {
         KO_MESSAGE("The entry type was not correctly initialized");
     } else OK_MESSAGE("The entry type was correctly initialized");
     TEST_RESULT(dir_list(dir, &entry), OK);
-    COMPARE_STRINGS(entry.name, "file3");
+    TEST_STRINGS(entry.name, "file3");
     if (entry.type != DIR_ENTRY_FILE) {
         KO_MESSAGE("The entry type was not correctly initialized");
     } else OK_MESSAGE("The entry type was correctly initialized");
     TEST_RESULT(dir_list(dir, &entry), OK);
-    COMPARE_STRINGS(entry.name, "file4");
+    TEST_STRINGS(entry.name, "file4");
     if (entry.type != DIR_ENTRY_FILE) {
         KO_MESSAGE("The entry type was not correctly initialized");
     } else OK_MESSAGE("The entry type was correctly initialized");
@@ -956,6 +956,138 @@ cleanup:
     END
 }
 
+// @author Cicim
+TEST(file_seek, 17) {
+    FatFs *fs;
+    FileHandle *file;
+    INIT_TEMP_FS(fs, 32, 32);
+
+    // Create a file and write 16 bytes
+    file_create(fs, "/file");
+    file_open(fs, "/file", &file, "w");
+    file_write(file, "012346789ABCDEF", 16);
+    file_close(file);
+
+    // Seek to the beginning
+    TEST_TITLE("FILE_SEEK_SET 0");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 0, FILE_SEEK_SET), OK);
+    TEST_INT("position", file_tell(file), 0);
+    file_close(file);
+
+    // Seek set to a number
+    TEST_TITLE("FILE_SEEK_SET 10");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 10, FILE_SEEK_SET), OK);
+    TEST_INT("position", file_tell(file), 10);
+    file_close(file);
+
+    // Seek end
+    TEST_TITLE("FILE_SEEK_END 0");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 0, FILE_SEEK_END), OK);
+    TEST_INT("position", file_tell(file), 16);
+    file_close(file);
+
+    // Seek end to a number
+    TEST_TITLE("FILE_SEEK_END 10");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 10, FILE_SEEK_END), OK);
+    TEST_INT("position", file_tell(file), 6);
+    file_close(file);
+
+    // Seek current
+    TEST_TITLE("FILE_SEEK_CUR 0");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 0, FILE_SEEK_CUR), OK);
+    TEST_INT("position", file_tell(file), 0);
+    file_close(file);
+
+    // Seek current to a number
+    TEST_TITLE("FILE_SEEK_CUR 10");
+    file_open(fs, "/file", &file, "r");
+    TEST_RESULT(file_seek(file, 10, FILE_SEEK_CUR), OK);
+    TEST_INT("position", file_tell(file), 10);
+
+    // Another seek curr
+    TEST_TITLE("Continuing FILE_SEEK_CUR 6");
+    TEST_RESULT(file_seek(file, 6, FILE_SEEK_CUR), OK);
+    TEST_INT("position", file_tell(file), 16);
+    file_close(file);
+
+    // Create a bigger file
+    file_create(fs, "/bigfile");
+    file_open(fs, "/bigfile", &file, "w");
+    for (int i = 0; i < 32; i++)
+        file_write(file, "0123456789ABCDEF", 16);
+    file_close(file);
+
+    // Seek to the 1000th byte
+    TEST_TITLE("FILE_SEEK_SET 128");
+    file_open(fs, "/bigfile", &file, "r");
+    TEST_RESULT(file_seek(file, 128, FILE_SEEK_SET), OK);
+    TEST_INT("position", file_tell(file), 128);
+    file_close(file);
+
+    TEST_TITLE("Seek after the end");
+    file_open(fs, "/bigfile", &file, "r");
+    TEST_RESULT(file_seek(file, file->fh->size + 1, FILE_SEEK_SET), SEEK_INVALID_ARGUMENT);
+    file_close(file);
+
+cleanup:
+    fat_close(fs);
+    END
+}
+
+// @author Cicim
+TEST(file_read, 6) {
+    FatFs *fs;
+    FileHandle *file;
+    const char *bytes_16 = "0123456789ABCDEF";
+    char buffer[32];
+
+    INIT_TEMP_FS(fs, 32, 32);
+
+    // Create a file and write 16 bytes
+    file_create(fs, "/file");
+    file_open(fs, "/file", &file, "w");
+    file_write(file, bytes_16, 16);
+    file_close(file);
+
+    TEST_TITLE("Reading 8 bytes at the start");
+    file_open(fs, "/file", &file, "r");
+    TEST_INT_RESULT(file_read(file, buffer, 8), 8);
+    buffer[8] = 0;
+    TEST_STRINGS(buffer, "01234567");
+    file_close(file);
+
+    // Read the file
+    TEST_TITLE("Reading bytes up to block and file end");
+    file_open(fs, "/file", &file, "r");
+    TEST_INT_RESULT(file_read(file, buffer, 16), 16);
+    buffer[16] = 0;
+    TEST_STRINGS(buffer, bytes_16);
+    file_close(file);
+
+    // Add more bytes
+    file_open(fs, "/file", &file, "a");
+    PRINT_DIRECTORY_TREE(0);
+    file_write(file, "GHIJKL", 6);
+    PRINT_DIRECTORY_TREE(0);
+    file_close(file);
+
+    // Read after the end of the file
+    TEST_TITLE("Reading bytes after the end of the file");
+    file_open(fs, "/file", &file, "r");
+    TEST_INT_RESULT(file_read(file, buffer, 22), 22);
+    buffer[22] = 0;
+    TEST_STRINGS(buffer, "0123456789ABCDEFGHIJKL");
+    file_close(file);
+
+cleanup:
+    fat_close(fs);
+    END
+}
 
 
 /**
@@ -976,6 +1108,8 @@ const struct TestData tests[] = {
     TEST_ENTRY(file_open),
     TEST_ENTRY(file_write),
     TEST_ENTRY(file_move),
+    TEST_ENTRY(file_seek),
+    TEST_ENTRY(file_read),
 };
 
 int main(int argc, char **argv) {

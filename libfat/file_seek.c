@@ -68,7 +68,7 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
             break;
 
         case FILE_SEEK_END:            
-            if (file->file_offset - offset < 0)
+            if (file->fh->size - offset < 0)
                 return SEEK_INVALID_ARGUMENT;
 
             // Calculate the number of blocks to move starting from the first
@@ -80,7 +80,7 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
             // Move the file current block to the last block calculated
             file->current_block_number = file->initial_block_number;
 
-            if (file->file_offset == file->fh->size && file->block_offset == 0)
+            if (offset == 0 && last_offset == 0)
                 num_blocks--;
             while (num_blocks-- > 0)
                 file->current_block_number = fat_get_next_block(file->fs, file->current_block_number);
@@ -99,4 +99,12 @@ FatResult file_seek(FileHandle *file, int offset, int whence) {
         file->block_offset = file->fs->header->block_size;        
 
     return OK;
+}
+
+int file_tell(FileHandle *file) {
+    // Check if "file" parameter is valid
+    if (file == NULL)
+        return SEEK_INVALID_ARGUMENT;
+    
+    return file->file_offset;
 }
