@@ -24,6 +24,11 @@ FatResult change_file_dimension(FileHandle *file, int size) {
     int new_num_blocks = NUM_BLOCKS_BY_SIZE(size);
     int offset = OFFSET_BY_SIZE(size);
 
+    // If the old offset is 0 then the old block number is old_num_blocks - 1
+    int old_offset = OFFSET_BY_SIZE(file->fh->size);
+    if (old_offset == 0)
+        old_num_blocks--;
+
     // If "offset" is 0 then the last block will be full
     // and we don't need to add another block
     if (new_num_blocks > 0 && offset == 0)

@@ -277,6 +277,16 @@ void format_date(DateTime *date, char* buffer) {
  * List directory contents
  * @author Claziero
  */
+
+typedef struct LsList {
+    struct LsList *next;
+    char name[MAX_FILENAME_LENGTH];
+    char type;
+    char date_created[20];
+    char date_modified[20];
+    int size;
+} LsList;
+
 FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     if (command_arguments == NULL)
         return INVALID_PATH;
@@ -312,15 +322,6 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
     
     // Loop for directory stats and alphabetic sorting
-    typedef struct LsList {
-        struct LsList *next;
-        char name[MAX_FILENAME_LENGTH];
-        char type;
-        char date_created[20];
-        char date_modified[20];
-        int size;
-    } LsList;
-
     int max_size = 10, spaces = 1;
     LsList *head = NULL;
     while ((res = dir_list(dir, &entry)) == OK) {
@@ -439,6 +440,45 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
 }
 
 /**
+ * Write in a file from stdin
+ * @author Claziero
+ */
+FatResult cmd_write(FatFs *fs, const char *path) {
+    if (path == NULL)
+        return INVALID_PATH;
+
+    printf("--Create the file if not exists? (y/n): ");
+    char c = getchar();
+    getchar();
+    char mode[3] = "w";
+    if (c == 'y' || c == 'Y') mode[1] = '+';
+    else if (c == 'n' || c == 'N') mode[1] = 0;
+    else return WRITE_INVALID_ARGUMENT;
+    mode[2] = 0;
+
+    // Open the file
+    FileHandle *file;
+    FatResult res = file_open(fs, path, &file, mode);
+    if (res != OK)
+        return res;
+
+    printf("--Your text (max. 255 bytes):\n");
+    char text[256];
+    if (fgets(text, 256, stdin)) {
+        text[strlen(text) - 1] = 0;
+        
+        // Write the text
+        res = file_write(file, text, strlen(text));
+        if (res < strlen(text))
+            return res;
+    }
+    
+    // Close the file
+    res = file_close(file);
+    return res;
+}
+
+/**
  * Help printing
  * @author Cicim
  */
@@ -521,6 +561,8 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_ec(fs, command[1], command[2]);
     else if (strcmp(cmd_name, "append") == 0)
         res = cmd_append(fs, command[1], command[2], command[3] ? atoi(command[3]) : 1);
+    else if (strcmp(cmd_name, "write") == 0)
+        res = cmd_write(fs, command[1]);
     else
         printf("Unknown command: %s\n", cmd_name);
 
