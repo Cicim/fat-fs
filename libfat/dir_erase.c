@@ -57,7 +57,7 @@ FatResult dir_erase(FatFs *fs, const char *path) {
         return res;
 
     // If the absolute path is the root
-    if (path_buffer[0] == '/' && path_buffer[1] == '\0') {
+    if (IS_ROOT(path_buffer)) {
         // Empty the root directory
         res = dir_empty(fs, ROOT_DIR_BLOCK);
         if (res != OK)
@@ -70,7 +70,7 @@ FatResult dir_erase(FatFs *fs, const char *path) {
         // Re-add it to the bitmap
         bitmap_set(fs, ROOT_DIR_BLOCK, 1);
         // Add a directory end to the root directory
-        memset(&fs->blocks_ptr[ROOT_DIR_BLOCK], 0, sizeof(DirEntry));
+        memset(fs->blocks_ptr, 0, sizeof(DirEntry));
 
         return OK;
     }

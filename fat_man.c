@@ -582,7 +582,7 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
 
     // Compare each command's name
     if (strcmp(cmd_name, "cd") == 0)
-        res = cmd_cd(fs, command[1]);
+        res = cmd_cd(fs, command[1] ? command[1] : "/");
     else if (strcmp(cmd_name, "mkdir") == 0)
         res = cmd_mkdir(fs, command[1]);
     else if (strcmp(cmd_name, "touch") == 0)
@@ -600,7 +600,7 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
     else if (strcmp(cmd_name, "rmdir") == 0)
         res = cmd_rmdir(fs, command[1]);
     else if (strcmp(cmd_name, "size") == 0)
-        res = cmd_size(fs, command[1]);
+        res = cmd_size(fs, command[1] ? command[1] : ".");
     else if (strcmp(cmd_name, "free") == 0)
         res = cmd_free(fs);
     else if (strcmp(cmd_name, "ec") == 0)

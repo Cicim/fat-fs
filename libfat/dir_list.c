@@ -69,11 +69,16 @@ FatResult dir_list(DirHandle *dir, DirEntry *entry) {
 FatResult file_size(FatFs *fs, const char *path, int *size, int *blocks) {
     FatResult res;
 
-    if (IS_ROOT(path))
+    char path_buffer[MAX_PATH_LENGTH];
+    // Get the absolute path
+    res = path_get_absolute(fs, path, path_buffer);
+    if (res != OK)
+        return res;
+
+    if (IS_ROOT(path_buffer))
         return get_recursive_size(fs, ROOT_DIR_BLOCK, DIR_ENTRY_DIRECTORY, size, blocks);
 
     // Parse the path
-    char path_buffer[MAX_PATH_LENGTH];
     char *dir_path, *name;
     res = path_get_components(fs, path, path_buffer, &dir_path, &name);
     if (res != OK)
