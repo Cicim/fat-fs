@@ -42,6 +42,7 @@ Eseguendo `./fat_man -s <file>` una volta inizializzato il file system nel file 
 - `cp <file|dir> <file|dir>`: copia (o duplica) il file o la cartella (il file o la cartella di destinazione non devono esistere già con lo stesso nome).
 - `size <dir>`: stampa la dimensione della cartella `dir` in Bytes realmente occupati e il numero di blocchi (e relativi Bytes di peso) effettivamente occupati su disco. Se il parametro `dir` non è presente si intende la cartella corrente.
 - `free`: stampa il numero di blocchi e numero di Bytes liberi e totali all'interno del file system.
+- `help <cmd>`: stampa le istruzioni d'uso del comando `cmd`. Se il parametro `cmd` non è presente, viene stampato l'helper contenente la lista dei comandi possibili.
 
 > Nota: con `dir` e `file` si intendono i percorsi verso la cartella o il file, siano essi assoluti oppure relativi.
 

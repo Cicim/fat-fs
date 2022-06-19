@@ -548,6 +548,7 @@ void help() {
         "Use --help <command> to get more information about each command\n"
     );
 }
+
 void help_init() {
     printf(
         "Usage: "COMMAND_NAME" -i <file> blocks <blocks count> size <block size>\n"
@@ -558,6 +559,125 @@ void help_init() {
     );
 }
 
+/**
+ * Help commands
+ * @author Claziero
+ */
+FatResult cmd_help(char *command) {
+    if (command == NULL)
+        printf(
+            "Usage: " TEXT_GREEN "help <command>" TEXT_RESET "\n"
+            " Available commands:\n"
+            "   cd   repeat   mkdir   mv   touch   rm   free   cat\n"
+            "   ls   append   rmdir   ec   write   cp   size\n"
+        );
+
+    else if (strcmp(command, "cd") == 0) 
+        printf(
+            "Usage: " TEXT_GREEN "cd <path>" TEXT_RESET "\n"
+            " Changes the current directory to <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> is not specified, the root directory is used\n"
+        );
+    else if (strcmp(command, "ls") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "ls [arguments] <dir>" TEXT_RESET "\n"
+            " Lists the contents of the directory <dir>\n"
+            "    -a (--all)  List also hidden files\n"
+            "    -l          List in long format\n"
+            " These arguments can be used together\n"
+            " Note: <dir> can be a relative or absolute path\n"
+            " Note: if <dir> is not specified, the current directory is used\n"
+        );
+    else if (strcmp(command, "mkdir") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "mkdir <path>" TEXT_RESET "\n"
+            " Creates a new directory <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+        );
+    else if (strcmp(command, "rmdir") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "rmdir <path>" TEXT_RESET "\n"
+            " Removes the directory <path> and its content recursively\n"
+            " Note: <path> can be a relative or absolute path\n"
+        );
+    else if (strcmp(command, "touch") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "touch <path>" TEXT_RESET "\n"
+            " Creates a new empty file <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+        );
+    else if (strcmp(command, "rm") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "rm <path>" TEXT_RESET "\n"
+            " Removes the file <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+        );
+    else if (strcmp(command, "cat") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "cat <path>" TEXT_RESET "\n"
+            " Prints the contents of the file <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+        );
+    else if (strcmp(command, "write") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "write <path>" TEXT_RESET "\n"
+            " Writes in the file <path> from stdin\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> doesn't already exist it can be created\n"
+        );
+    else if (strcmp(command, "append") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "append <path>" TEXT_RESET "\n"
+            " Appends to the file <path> from stdin\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> doesn't already exist it can be created\n"
+        );
+    else if (strcmp(command, "ec") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "ec <path_ext> <path>" TEXT_RESET "\n"
+            " Copies the content of the external file <path_ext> in <path>\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> doesn't already exist it will be created\n"
+        );
+    else if (strcmp(command, "repeat") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "repeat <path> <char> <count>" TEXT_RESET "\n"
+            " Appends to the file <file> the character <char> <count> times\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> doesn't already exist it will be created\n"
+        );
+    else if (strcmp(command, "mv") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "mv <path1> <path2>" TEXT_RESET "\n"
+            " Moves the file or directory <path1> to <path2>\n"
+            " Note: <path1> and <path2> can be relative or absolute paths\n"
+            " Note: if <path2> already exists, an error is returned\n"
+        );
+    else if (strcmp(command, "cp") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "cp <path1> <path2>" TEXT_RESET "\n"
+            " Copies the file or directory <path1> to <path2>\n"
+            " Note: <path1> and <path2> can be relative or absolute paths\n"
+            " Note: if <path2> already exists, an error is returned\n"
+        );
+    else if (strcmp(command, "size") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "size <path>" TEXT_RESET "\n"
+            " Prints the size of the file or directory <path> Bytes and number of blocks\n"
+            " Note: <path> can be a relative or absolute path\n"
+            " Note: if <path> is not specified, the current directory is used\n"
+        );
+    else if (strcmp(command, "free") == 0)
+        printf(
+            "Usage: " TEXT_GREEN "free" TEXT_RESET "\n"
+            " Prints the number of free blocks and available Bytes in the file system\n"
+        );
+    else 
+        printf(TEXT_ERROR "Unknown command: %s" TEXT_RESET "\n", command);     
+
+    return OK;
+}
 
 /**
  * Argument parsing
@@ -624,8 +744,10 @@ void parse_command(FatFs *fs, char *command[MAX_COMMAND_ARGUMENTS]) {
         res = cmd_write(fs, command[1], "w");
     else if (strcmp(cmd_name, "append") == 0)
         res = cmd_write(fs, command[1], "a");
+    else if (strcmp(cmd_name, "help") == 0)
+        res = cmd_help(command[1]);
     else
-        printf("Unknown command: %s\n", cmd_name);
+        printf(TEXT_ERROR "Unknown command: %s" TEXT_RESET "\n", cmd_name);
 
     if (res != OK)
         printf(TEXT_ERROR "%s error: %s\n" TEXT_RESET, cmd_name, fat_result_string(res));
@@ -647,7 +769,7 @@ int run_shell(char *file) {
         return 1;
     }
 
-    printf("Welcome to FAT Manager. Type 'exit' to quit or 'quit' to exit.\n");
+    printf("Welcome to FAT Manager. Type 'help' to get rescued, 'exit' to quit or 'quit' to exit.\n");
     char input[MAX_PATH_LENGTH * MAX_COMMAND_ARGUMENTS];
     while (1) {
         // Prompt
