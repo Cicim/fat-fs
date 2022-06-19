@@ -342,16 +342,20 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
 
     // Open the correct directory
-    if (!args.argument_path) {
-        res = dir_open(fs, fs->current_directory, &dir);
-        if (res != OK)
-            return res;
-    }
-    else {
-        res = dir_open(fs, command_arguments[path], &dir);
-        if (res != OK)
-            return res;
-    }
+    char *dir_path, old_path[MAX_PATH_LENGTH];
+    if (!args.argument_path) 
+        dir_path = fs->current_directory;
+    else 
+        dir_path = command_arguments[path];
+
+    res = dir_open(fs, dir_path, &dir);
+    if (res != OK)
+        return res;
+    strcpy(old_path, fs->current_directory);
+    
+    res = dir_change(fs, dir_path);
+    if (res != OK)
+        return res;
     
     // Loop for directory stats and alphabetic sorting
     int max_size = 10, spaces_size = 1, max_blocks = 10, spaces_blocks = 1;
@@ -361,8 +365,12 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
 
         if (entry.type == DIR_ENTRY_DIRECTORY) {
             res = file_size(fs, entry.name, &elem->size, &elem->blocks);
-            if (res != OK)
+            if (res != OK) {
+                dir_change(fs, old_path);
+                dir_close(dir);
                 return res;
+            }
+
             strcpy(elem->date_created, "--");
             strcpy(elem->date_modified, "--");
         } 
@@ -371,8 +379,11 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
                 (fs->blocks_ptr + entry.first_block * fs->header->block_size);
 
             res = file_size(fs, entry.name, &elem->size, &elem->blocks);
-            if (res != OK)
+            if (res != OK) {
+                dir_change(fs, old_path);
+                dir_close(dir);
                 return res;
+            }
 
             format_date(&fh->date_created, elem->date_created);
             format_date(&fh->date_modified, elem->date_modified);
@@ -452,8 +463,11 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
                 printf(TEXT_BLUE "%s   " TEXT_RESET, head->name);
             else 
                 printf("%s   ", head->name);
-            
+
+            // Go to the next block and free the current one
+            LsList *tmp = head;
             head = head->next;
+            free(tmp);
             continue;
         }
 
@@ -482,6 +496,11 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         free(tmp);
     }
     if (!args.argument_long) printf("\n");
+
+    // Change back to the previous directory
+    res = dir_change(fs, old_path);
+    if (res != OK)
+        return res;
 
     // Close the directory
     res = dir_close(dir);
