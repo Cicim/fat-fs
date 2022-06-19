@@ -67,6 +67,8 @@ int bitmap_get_free_block(FatFs *fs) {
  * @author Claziero
  */
 FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
+    char result[MAX_PATH_LENGTH];
+
     // If the path is empty, return an error
     if (path == NULL || path[0] == '\0')
         return INVALID_PATH;
@@ -78,15 +80,16 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
     // If the path is already absolute, copy it to the destination
     if (strncmp(path, fs->current_directory, strlen(fs->current_directory)) == 0) {
         if (strcmp(path, "/") == 0)
-            strcpy(dest, "/");
+            strcpy(result, "/");
         else {
-            strcpy(dest, path);
+            strcpy(result, path);
 
             // Check if there are trailing slashes
-            while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-                dest[strlen(dest) - 1] = '\0';
+            while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+                result[strlen(result) - 1] = '\0';
         }
 
+        strcpy(dest, result);
         return OK;
     }
 
@@ -101,67 +104,74 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
 
         // If the parent directory is the root directory
         if (parent_dir == fs->current_directory) {
-            strcpy(dest, "/");
+            strcpy(result, "/");
+            strcpy(dest, result);
             return OK;
         }
 
         // Otherwise, copy the parent directory to the destination
-        strncpy(dest, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
-        dest[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
+        strncpy(result, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
+        result[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
 
+        strcpy(dest, result);
         return OK;
     }
 
     // If the path begins with "../"
     int flag = 0;
-    strcpy(dest, fs->current_directory);
+    strcpy(result, fs->current_directory);
     while (strncmp(path, "../", 3) == 0) {
         flag = 1;
         // Get the parent directory
-        char *parent_dir = strrchr(dest, '/');
+        char *parent_dir = strrchr(result, '/');
 
         // If the current directory is the root directory, return an error
-        if (strcmp(dest, "/") == 0)
+        if (strcmp(result, "/") == 0)
             return INVALID_PATH;
 
         // If the parent directory is the root directory
-        if (parent_dir == dest) {
-            strcpy(dest, "/");
+        if (parent_dir == result) {
+            strcpy(result, "/");
             path += 3;
             continue;
         }
 
         // Otherwise, copy the parent directory to the destination
-        strncpy(dest, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
-        dest[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
+        strncpy(result, fs->current_directory, strlen(fs->current_directory) - strlen(parent_dir));
+        result[strlen(fs->current_directory) - strlen(parent_dir)] = '\0';
         
         // Get the next path component
         path += 3;
     }
     // If the path is terminated
-    if (flag && strcmp(path, "") == 0) 
+    if (flag && strcmp(path, "") == 0) {
+        strcpy(dest, result);
         return OK;
+    }
     else if (flag) {
         // Append the rest of the path to the destination
-        if (dest[1] != '\0')
-            strcat(dest, "/");
-        strcat(dest, path);
+        if (result[1] != '\0')
+            strcat(result, "/");
+        strcat(result, path);
 
         // Check if there are trailing slashes
-        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-            dest[strlen(dest) - 1] = '\0';
-            
+        while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+            result[strlen(result) - 1] = '\0';
+        
+        strcpy(dest, result);
         return OK;
     }
 
     // If the path contains only "."
     if (strcmp(path, ".") == 0) {
-        strcpy(dest, fs->current_directory);
+        strcpy(result, fs->current_directory);
 
         // Check if there are trailing slashes
-        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-            dest[strlen(dest) - 1] = '\0';
+        while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+            result[strlen(result) - 1] = '\0';
 
+        
+        strcpy(dest, result);
         return OK;
     }
     
@@ -171,48 +181,53 @@ FatResult path_get_absolute(FatFs *fs, const char *path, char *dest) {
         flag = 1;
 
         // Copy the current directory to the destination
-        strcpy(dest, fs->current_directory);
+        strcpy(result, fs->current_directory);
         
         // Get the next path component
         path += 2;
     }
     // If the path is terminated
-    if (flag && strcmp(path, "") == 0) 
+    if (flag && strcmp(path, "") == 0) {
+        strcpy(dest, result);
         return OK;
+    }
     else if (flag) {
         // Append the rest of the path to the destination
-        if (dest[1] != '\0')
-            strcat(dest, "/");
-        strcat(dest, path);
+        if (result[1] != '\0')
+            strcat(result, "/");
+        strcat(result, path);
 
         // Check if there are trailing slashes
-        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-            dest[strlen(dest) - 1] = '\0';
-
+        while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+            result[strlen(result) - 1] = '\0';
+        
+        strcpy(dest, result);
         return OK;
     }
 
     // If the path begins with "/", then copy the given path to the destination
     if (strncmp(path, "/", 1) == 0) {
-        strcpy(dest, path);
+        strcpy(result, path);
 
         // Check if there are trailing slashes
-        while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-            dest[strlen(dest) - 1] = '\0';
+        while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+            result[strlen(result) - 1] = '\0';
 
+        strcpy(dest, result);
         return OK;
     }
     
     // Else the path is relative, so concatenate the current directory and the path
-    strcpy(dest, fs->current_directory);
+    strcpy(result, fs->current_directory);
     if (strcmp(fs->current_directory, "/") != 0) 
-        strcat(dest, "/");
-    strcat(dest, path);
+        strcat(result, "/");
+    strcat(result, path);
 
     // Check if there are trailing slashes
-    while (dest[strlen(dest) - 1] == '/' && strlen(dest) != 1)
-        dest[strlen(dest) - 1] = '\0';
+    while (result[strlen(result) - 1] == '/' && strlen(result) != 1)
+        result[strlen(result) - 1] = '\0';
 
+    strcpy(dest, result);
     return OK;
 }
 
