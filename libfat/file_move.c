@@ -156,27 +156,22 @@ FatResult file_copy_recursive(FatFs *fs, int src_block, int src_type, int *copy_
 
     // If the source is a directory, copy the various files inside of the directory
     // Loop over the two directories
-    DirHandle src_dir_handle;
     DirHandle new_dir_handle;
-    src_dir_handle.block_number = src_block;
     new_dir_handle.block_number = *copy_block;
-    src_dir_handle.count = 0;
     new_dir_handle.count = 0;
-    DirEntry *src_entry;
     DirEntry *new_entry;
 
     while (1) {
         // Get the next entry in the source directory
-        dir_handle_next(fs, &new_dir_handle, &new_entry);
-        res = dir_handle_next(fs, &src_dir_handle, &src_entry);
+        res = dir_handle_next(fs, &new_dir_handle, &new_entry);
         if (res == END_OF_DIR)
             break;
         else if (res != OK)
             return res;
 
         // Get the entry source block and type
-        int src_entry_block = src_entry->first_block;
-        int src_entry_type = src_entry->type;
+        int src_entry_block = new_entry->first_block;
+        int src_entry_type = new_entry->type;
         // Copy it recursively
         int new_entry_block;
         res = file_copy_recursive(fs, src_entry_block, src_entry_type, &new_entry_block);
