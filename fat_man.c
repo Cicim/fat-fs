@@ -354,7 +354,7 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
     }
     
     // Loop for directory stats and alphabetic sorting
-    int max_size = 10, spaces = 1;
+    int max_size = 10, spaces_size = 1, max_blocks = 10, spaces_blocks = 1;
     LsList *head = NULL;
     while ((res = dir_list(dir, &entry)) == OK) {
         LsList *elem = malloc(sizeof(LsList));
@@ -373,16 +373,22 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
             res = file_size(fs, entry.name, &elem->size, &elem->blocks);
             if (res != OK)
                 return res;
-        
-            // Get the max size of the elements
-            while (fh->size > max_size) {
-                max_size *= 10;
-                spaces++;
-            }
 
             format_date(&fh->date_created, elem->date_created);
             format_date(&fh->date_modified, elem->date_modified);
             elem->size = fh->size;
+        }
+
+        // Get the max size of the elements
+        while (elem->size >= max_size) {
+            max_size *= 10;
+            spaces_size++;
+        }
+
+        // Get the max blocks of the elements
+        while (elem->blocks >= max_blocks) {
+            max_blocks *= 10;
+            spaces_blocks++;
         }
 
         strcpy(elem->name, entry.name);
@@ -408,21 +414,21 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
 
     if (args.argument_long)
         printf(TEXT_GREEN "TYPE  %*sSIZE  %*sBLOCKS  DATE-CREATED         DATE-MODIFIED        NAME\n" TEXT_RESET,
-        MAX(0, spaces - 4), "", MAX(0, spaces - 6), "");
+        MAX(0, spaces_size - 4), "", MAX(0, spaces_blocks - 6), "");
 
     // If "-a" is used, list also "." and ".." directories
     if (args.argument_all) {
         if (args.argument_long) {
             printf("DIR   ");
-            printf("%*s  ", MAX(spaces, 4), "--");
-            printf("%*s  ", MAX(spaces, 6), "--");
+            printf("%*s  ", MAX(spaces_size, 4), "--");
+            printf("%*s  ", MAX(spaces_blocks, 6), "--");
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE ".\n" TEXT_RESET);
 
             printf("DIR   ");
-            printf("%*s  ", MAX(spaces, 4), "--");
-            printf("%*s  ", MAX(spaces, 6), "--");
+            printf("%*s  ", MAX(spaces_size, 4), "--");
+            printf("%*s  ", MAX(spaces_blocks, 6), "--");
             printf("--                   ");
             printf("--                   ");
             printf(TEXT_BLUE "..\n" TEXT_RESET);
@@ -454,16 +460,16 @@ FatResult cmd_ls(FatFs *fs, char **command_arguments) {
         if (args.argument_long) {
             if (head->type == DIR_ENTRY_DIRECTORY) {
                 printf("DIR   ");
-                printf("%*d  ", MAX(spaces, 4), head->size);
-                printf("%*d  ", MAX(spaces, 6), head->blocks);
+                printf("%*d  ", MAX(spaces_size, 4), head->size);
+                printf("%*d  ", MAX(spaces_blocks, 6), head->blocks);
                 printf("--                   ");
                 printf("--                   ");
                 printf(TEXT_BLUE "%s\n" TEXT_RESET, head->name);
             }
             else {
                 printf("FILE  ");
-                printf("%*d  ", MAX(spaces, 4), head->size);
-                printf("%*d  ", MAX(spaces, 6), head->blocks);
+                printf("%*d  ", MAX(spaces_size, 4), head->size);
+                printf("%*d  ", MAX(spaces_blocks, 6), head->blocks);
                 printf("%s  ", head->date_created); 
                 printf("%s  ", head->date_modified); 
                 printf("%s\n", head->name);
@@ -960,7 +966,6 @@ int main(int argc, char **argv) {
         printf("Error closing the file system: %s\n", fat_result_string(res));
         return 1;
     }
-
 
     return 0;
 }
